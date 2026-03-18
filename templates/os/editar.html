@@ -1,0 +1,423 @@
+{% extends 'base.html' %}
+
+{% block title %}Editar OS - Sistema Oficina{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-file-earmark-text"></i> Ordem de Serviço #{{ ordem.id[:8] }}</h2>
+    <div>
+        <!-- Botão Imprimir -->
+        <a href="{{ url_for('os.imprimir', os_id=ordem.id) }}" class="btn btn-info" target="_blank">
+            <i class="bi bi-printer"></i> Imprimir OS
+        </a>
+        
+        <!-- Botão Voltar -->
+        <a href="{{ url_for('os.listar') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Voltar
+        </a>
+        
+        <!-- Botão Deletar -->
+        <form method="POST" action="{{ url_for('os.deletar', os_id=ordem.id) }}" style="display:inline;" onsubmit="return confirm('Tem certeza? Os itens serão devolvidos ao estoque.')">
+            <button type="submit" class="btn btn-danger">
+                <i class="bi bi-trash"></i> Deletar OS
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Informações do Cliente e Veículo -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <strong><i class="bi bi-person-circle"></i> Cliente</strong>
+            </div>
+            <div class="card-body">
+                {% if ordem.clientes %}
+                    <p class="mb-1"><strong>Nome:</strong> {{ ordem.clientes.nome }}</p>
+                    <p class="mb-1"><strong>Telefone:</strong> {{ ordem.clientes.telefone }}</p>
+                    <p class="mb-0"><strong>CPF/CNPJ:</strong> {{ ordem.clientes.cpf_cnpj or '-' }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <strong><i class="bi bi-car-front"></i> Veículo</strong>
+            </div>
+            <div class="card-body">
+                {% if ordem.veiculos %}
+                    <p class="mb-1"><strong>Placa:</strong> {{ ordem.veiculos.placa }}</p>
+                    <p class="mb-1"><strong>Modelo:</strong> {{ ordem.veiculos.modelo }} {{ ordem.veiculos.marca }}</p>
+                    <p class="mb-1"><strong>Cor:</strong> {{ ordem.veiculos.cor or '-' }}</p>
+                    <p class="mb-0"><strong>KM:</strong> {{ '{:,}'.format(ordem.veiculos.km_atual).replace(',', '.') if ordem.veiculos.km_atual else '-' }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Descrição e KM -->
+<div class="card mb-4">
+    <div class="card-header">
+        <strong><i class="bi bi-clipboard-check"></i> Informações do Serviço</strong>
+    </div>
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('os.atualizar_info', os_id=ordem.id) }}">
+            <div class="mb-3">
+                <label for="descricao_problema" class="form-label">Descrição do Problema/Serviço</label>
+                <textarea class="form-control" 
+                          id="descricao_problema" 
+                          name="descricao_problema" 
+                          rows="3" 
+                          placeholder="Descreva o problema relatado ou serviço a ser realizado...">{{ ordem.descricao_problema or '' }}</textarea>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-8">
+                    <label for="km_atual" class="form-label">KM Atual</label>
+                    <input type="number" 
+                           class="form-control" 
+                           id="km_atual" 
+                           name="km_atual" 
+                           value="{{ ordem.km_atual or '' }}"
+                           min="0">
+                    <small class="text-muted">
+                        <i class="bi bi-info-circle"></i> 
+                        KM cadastrado no veículo: {{ '{:,}'.format(ordem.veiculos.km_atual).replace(',', '.') if ordem.veiculos and ordem.veiculos.km_atual else 'Não informado' }} km
+                        {% if ordem.km_atual and ordem.veiculos.km_atual and ordem.km_atual > ordem.veiculos.km_atual %}
+                            <span class="text-success"><i class="bi bi-check-circle"></i> Veículo será atualizado ao salvar</span>
+                        {% endif %}
+                    </small>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-check-circle"></i> Salvar Informações
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<!-- Status e Pagamento -->
+<div class="card mb-4">
+    <div class="card-header">
+        <strong><i class="bi bi-gear"></i> Status da OS</strong>
+    </div>
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('os.atualizar_detalhes', os_id=ordem.id) }}">
+            <div class="row">
+                <div class="col-md-4">
+                    <label class="form-label">Status</label>
+                    <select class="form-select" name="status">
+                        <option value="ORCAMENTO" {% if ordem.status == 'ORCAMENTO' %}selected{% endif %}>📋 Orçamento</option>
+                        <option value="AGUARDANDO_PECA" {% if ordem.status == 'AGUARDANDO_PECA' %}selected{% endif %}>⏳ Aguardando Peça</option>
+                        <option value="EXECUCAO" {% if ordem.status == 'EXECUCAO' %}selected{% endif %}>🔧 Em Execução</option>
+                        <option value="FINALIZADO" {% if ordem.status == 'FINALIZADO' %}selected{% endif %}>✅ Finalizado</option>
+                        <option value="PAGO" {% if ordem.status == 'PAGO' %}selected{% endif %}>💰 Pago</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Forma de Pagamento</label>
+                    <select class="form-select" name="forma_pagamento">
+                        <option value="">Não definido</option>
+                        <option value="Dinheiro" {% if ordem.forma_pagamento == 'Dinheiro' %}selected{% endif %}>💵 Dinheiro</option>
+                        <option value="PIX" {% if ordem.forma_pagamento == 'PIX' %}selected{% endif %}>📱 PIX</option>
+                        <option value="Cartão Débito" {% if ordem.forma_pagamento == 'Cartão Débito' %}selected{% endif %}>💳 Cartão Débito</option>
+                        <option value="Cartão Crédito" {% if ordem.forma_pagamento == 'Cartão Crédito' %}selected{% endif %}>💳 Cartão Crédito</option>
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-check-circle"></i> Atualizar
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Totais -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-info">
+            <div class="card-body text-center">
+                <h6>Peças</h6>
+                <h4>R$ {{ '{:,.2f}'.format(ordem.total_pecas).replace(',', 'X').replace('.', ',').replace('X', '.') }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-warning">
+            <div class="card-body text-center">
+                <h6>Mão de Obra</h6>
+                <h4>R$ {{ '{:,.2f}'.format(ordem.total_mao_obra).replace(',', 'X').replace('.', ',').replace('X', '.') }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-success">
+            <div class="card-body text-center">
+                <h6>Total Geral</h6>
+                <h4>R$ {{ '{:,.2f}'.format(ordem.total_geral).replace(',', 'X').replace('.', ',').replace('X', '.') }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-primary">
+            <div class="card-body text-center">
+                <h6>Lucro Estimado</h6>
+                <h4>R$ {{ '{:,.2f}'.format(ordem.lucro_estimado).replace(',', 'X').replace('.', ',').replace('X', '.') }}</h4>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Itens da OS -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <strong><i class="bi bi-list-ul"></i> Itens da OS</strong>
+        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalAdicionarItem">
+            <i class="bi bi-plus-circle"></i> Adicionar Item
+        </button>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Tipo</th>
+                        <th>Item</th>
+                        <th>Qtd</th>
+                        <th>Custo Unit.</th>
+                        <th>Venda Unit.</th>
+                        <th>Subtotal</th>
+                        <th>Lucro</th>
+                        <th width="80">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in itens %}
+                    <tr>
+                        <td>
+                            {% if item.tipo == 'PECA' %}
+                                <span class="badge bg-info">Peça</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark">Serviço</span>
+                            {% endif %}
+                        </td>
+                        <td><strong>{{ item.nome_item }}</strong></td>
+                        <td>{{ item.quantidade }}</td>
+                        <td>R$ {{ '{:,.2f}'.format(item.custo_unitario).replace(',', 'X').replace('.', ',').replace('X', '.') }}</td>
+                        <td>R$ {{ '{:,.2f}'.format(item.venda_unitario).replace(',', 'X').replace('.', ',').replace('X', '.') }}</td>
+                        <td><strong>R$ {{ '{:,.2f}'.format(item.quantidade * item.venda_unitario).replace(',', 'X').replace('.', ',').replace('X', '.') }}</strong></td>
+                        <td>
+                            {% set lucro_item = (item.venda_unitario - item.custo_unitario) * item.quantidade %}
+                            <span class="badge {% if lucro_item > 0 %}bg-success{% else %}bg-danger{% endif %}">
+                                R$ {{ '{:,.2f}'.format(lucro_item).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+                            </span>
+                        </td>
+                        <td>
+                            <form method="POST" action="{{ url_for('os.remover_item', os_id=ordem.id, item_id=item.id) }}" 
+                                  style="display:inline;" onsubmit="return confirm('Remover este item?')">
+                                <button type="submit" class="btn btn-sm btn-danger">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted">
+                            Nenhum item adicionado. Clique em "Adicionar Item" para começar.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Adicionar Item -->
+<div class="modal fade" id="modalAdicionarItem" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Adicionar Item à OS</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('os.adicionar_item', os_id=ordem.id) }}" id="formAdicionarItem">
+                <div class="modal-body">
+                    <!-- Tipo -->
+                    <div class="mb-3">
+                        <label class="form-label">Tipo *</label>
+                        <select class="form-select" name="tipo" id="tipoItem" required>
+                            <option value="PECA">🔧 Peça</option>
+                            <option value="MAO_OBRA">🔨 Mão de Obra</option>
+                        </select>
+                    </div>
+
+                    <!-- Origem -->
+                    <div class="mb-3">
+                        <label class="form-label">Origem *</label>
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="origem" id="origemEstoque" value="estoque" checked>
+                            <label class="btn btn-outline-primary" for="origemEstoque">
+                                <i class="bi bi-box-seam"></i> Do Estoque
+                            </label>
+
+                            <input type="radio" class="btn-check" name="origem" id="origemManual" value="manual">
+                            <label class="btn btn-outline-primary" for="origemManual">
+                                <i class="bi bi-pencil"></i> Digitar Manualmente
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Do Estoque -->
+                    <div id="divEstoque">
+                        <div class="mb-3">
+                            <label class="form-label">Selecionar do Estoque</label>
+                            <select class="form-select" name="estoque_id" id="estoqueSelect">
+                                <option value="">Selecione um item...</option>
+                                {% for item in estoque %}
+                                <option value="{{ item.id }}" 
+                                        data-nome="{{ item.nome }}"
+                                        data-custo="{{ item.custo }}"
+                                        data-venda="{{ item.venda }}"
+                                        data-quantidade="{{ item.quantidade }}"
+                                        data-categoria="{{ item.categoria }}">
+                                    {{ item.nome }} - Disponível: {{ item.quantidade }} - R$ {{ '{:.2f}'.format(item.venda) }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Quantidade *</label>
+                            <input type="number" class="form-control" name="quantidade" id="quantidadeEstoque" min="1" value="1">
+                            <small class="text-muted" id="disponivelTexto"></small>
+                        </div>
+                    </div>
+
+                    <!-- Manual -->
+                    <div id="divManual" style="display: none;">
+                        <div class="mb-3">
+                            <label class="form-label">Nome do Item *</label>
+                            <input type="text" class="form-control" name="nome_item" id="nomeItemManual" placeholder="Ex: Filtro de Óleo XYZ">
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <label class="form-label">Quantidade *</label>
+                                <input type="number" class="form-control" name="quantidade" id="quantidadeManual" min="1" value="1">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Custo Unitário</label>
+                                <input type="number" class="form-control" name="custo_unitario" step="0.01" min="0" value="0">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Venda Unitário *</label>
+                                <input type="number" class="form-control" name="venda_unitario" id="vendaManual" step="0.01" min="0" required>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-plus-circle"></i> Adicionar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Alternar entre Estoque e Manual
+function alternarOrigem() {
+    const origem = document.querySelector('input[name="origem"]:checked').value;
+    
+    if (origem === 'estoque') {
+        document.getElementById('divEstoque').style.display = 'block';
+        document.getElementById('divManual').style.display = 'none';
+        
+        // Habilitar validação do estoque
+        document.getElementById('estoqueSelect').required = true;
+        document.getElementById('quantidadeEstoque').required = true;
+        
+        // Desabilitar validação manual
+        document.getElementById('nomeItemManual').required = false;
+        document.getElementById('vendaManual').required = false;
+        document.getElementById('quantidadeManual').required = false;
+        
+    } else {
+        document.getElementById('divEstoque').style.display = 'none';
+        document.getElementById('divManual').style.display = 'block';
+        
+        // Desabilitar validação do estoque
+        document.getElementById('estoqueSelect').required = false;
+        document.getElementById('quantidadeEstoque').required = false;
+        
+        // Habilitar validação manual
+        document.getElementById('nomeItemManual').required = true;
+        document.getElementById('vendaManual').required = true;
+        document.getElementById('quantidadeManual').required = true;
+    }
+}
+
+// Adicionar listener nos radio buttons
+document.querySelectorAll('input[name="origem"]').forEach(radio => {
+    radio.addEventListener('change', alternarOrigem);
+});
+
+// Chamar na inicialização
+alternarOrigem();
+
+// Atualizar info ao selecionar do estoque
+document.getElementById('estoqueSelect').addEventListener('change', function() {
+    const option = this.options[this.selectedIndex];
+    const quantidade = option.getAttribute('data-quantidade');
+    
+    if (quantidade) {
+        document.getElementById('disponivelTexto').textContent = `Disponível em estoque: ${quantidade} unidades`;
+        document.getElementById('quantidadeEstoque').max = quantidade;
+    }
+});
+
+// Filtrar estoque por tipo
+document.getElementById('tipoItem').addEventListener('change', function() {
+    const tipo = this.value;
+    const select = document.getElementById('estoqueSelect');
+    const options = select.querySelectorAll('option');
+    
+    options.forEach(option => {
+        if (option.value === '') return;
+        
+        const categoria = option.getAttribute('data-categoria');
+        
+        if (tipo === 'PECA') {
+            // Mostrar tudo exceto mão de obra
+            option.style.display = categoria === 'MAO_OBRA' ? 'none' : '';
+        } else {
+            // Mostrar só mão de obra
+            option.style.display = categoria === 'MAO_OBRA' ? '' : 'none';
+        }
+    });
+    
+    select.value = '';
+});
+
+// Limpar campos ao abrir modal
+document.getElementById('modalAdicionarItem').addEventListener('show.bs.modal', function () {
+    document.getElementById('formAdicionarItem').reset();
+    document.getElementById('origemEstoque').checked = true;
+    alternarOrigem();
+});
+</script>
+
+{% endblock %}

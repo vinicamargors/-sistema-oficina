@@ -1,0 +1,197 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if veiculo %}Editar{% else %}Novo{% endif %} Veículo{% endblock %}
+
+{% block content %}
+<h2>{% if veiculo %}Editar{% else %}Novo{% endif %} Veículo</h2>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST" id="formVeiculo">
+            <div class="row">
+                <!-- Placa -->
+                <div class="col-md-4 mb-3">
+                    <label for="placa" class="form-label">Placa *</label>
+                    <input type="text" class="form-control text-uppercase" id="placa" name="placa" 
+                           value="{{ veiculo.placa if veiculo else '' }}" 
+                           placeholder="ABC-1234" maxlength="10" required MAXLENGTH="8">
+                    <small class="text-muted">Ex: ABC-1234 ou ABC1D23</small>
+                </div>
+
+                <!-- Modelo -->
+                <div class="col-md-8 mb-3">
+                    <label for="modelo" class="form-label">Modelo *</label>
+                    <input type="text" class="form-control" id="modelo" name="modelo" 
+                           value="{{ veiculo.modelo if veiculo else '' }}" 
+                           placeholder="Fiat Uno Vivace 1.0" required>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Marca -->
+                <div class="col-md-4 mb-3">
+                    <label for="marca" class="form-label">Marca</label>
+                    <input type="text" class="form-control" id="marca" name="marca" 
+                           value="{{ veiculo.marca if veiculo else '' }}" 
+                           placeholder="Fiat">
+                </div>
+
+                <!-- Cor -->
+                <div class="col-md-4 mb-3">
+                    <label for="cor" class="form-label">Cor</label>
+                    <input type="text" class="form-control" id="cor" name="cor" 
+                           value="{{ veiculo.cor if veiculo else '' }}" 
+                           placeholder="Prata">
+                </div>
+
+                <!-- KM Atual -->
+                <div class="col-md-4 mb-3">
+                    <label for="km_atual" class="form-label">KM Atual</label>
+                    <input type="number" class="form-control" id="km_atual" name="km_atual" 
+                           value="{{ veiculo.km_atual if veiculo else '' }}" 
+                           placeholder="50000" min="0">
+                </div>
+            </div>
+
+            <!-- Cliente com Autocomplete -->
+            <div class="mb-3">
+                <label for="busca_cliente" class="form-label">Cliente (Dono do Veículo) *</label>
+                
+                <!-- Input visível para o usuário -->
+                <input type="text" 
+                       class="form-control" 
+                       id="busca_cliente" 
+                       placeholder="Digite o nome ou telefone do cliente..."
+                       autocomplete="off"
+                       {% if veiculo and veiculo.cliente_id %}
+                           value="{% for c in clientes if c.id == veiculo.cliente_id %}{{ c.nome }} - 📞 {{ c.telefone }}{% endfor %}"
+                       {% endif %}>
+                
+                <!-- Input hidden que guarda o ID -->
+                <input type="hidden" name="cliente_id" id="cliente_id" 
+                       value="{{ veiculo.cliente_id if veiculo else '' }}" required>
+                
+                <!-- Dropdown de sugestões -->
+                <div id="sugestoes" class="list-group" style="position: absolute; z-index: 1000; max-height: 300px; overflow-y: auto; display: none; width: calc(100% - 30px);"></div>
+                
+                {% if not clientes %}
+                    <small class="text-warning d-block mt-2">
+                        <i class="bi bi-exclamation-triangle"></i> 
+                        Nenhum cliente cadastrado. 
+                        <a href="{{ url_for('cliente.novo') }}" target="_blank">Cadastrar cliente</a>
+                    </small>
+                {% else %}
+                    <small class="text-muted d-block mt-2">
+                        <i class="bi bi-info-circle"></i> Digite para buscar cliente por nome ou telefone
+                    </small>
+                {% endif %}
+            </div>
+
+            <hr>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-success" {% if not clientes %}disabled{% endif %}>
+                    <i class="bi bi-check-circle"></i> Salvar
+                </button>
+                <a href="{{ url_for('veiculos.listar') }}" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Lista de clientes (vem do backend)
+const clientes = [
+    {% for cliente in clientes %}
+    {
+        id: "{{ cliente.id }}",
+        nome: "{{ cliente.nome }}",
+        telefone: "{{ cliente.telefone }}"
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+];
+
+const inputBusca = document.getElementById('busca_cliente');
+const inputHidden = document.getElementById('cliente_id');
+const divSugestoes = document.getElementById('sugestoes');
+
+// Quando o usuário digita
+inputBusca.addEventListener('input', function() {
+    const termo = this.value.toLowerCase().trim();
+    
+    // Limpa o ID hidden quando muda o texto
+    inputHidden.value = '';
+    
+    if (termo.length < 2) {
+        divSugestoes.style.display = 'none';
+        return;
+    }
+    
+    // Filtra clientes
+    const resultados = clientes.filter(c => 
+        c.nome.toLowerCase().includes(termo) || 
+        c.telefone.includes(termo)
+    );
+    
+    if (resultados.length === 0) {
+        divSugestoes.innerHTML = '<div class="list-group-item text-muted">Nenhum cliente encontrado</div>';
+        divSugestoes.style.display = 'block';
+        return;
+    }
+    
+    // Monta as sugestões
+    divSugestoes.innerHTML = '';
+    resultados.forEach(cliente => {
+        const item = document.createElement('a');
+        item.href = '#';
+        item.className = 'list-group-item list-group-item-action';
+        item.innerHTML = `
+            <div><strong>${cliente.nome}</strong></div>
+            <small class="text-muted"><i class="bi bi-telephone"></i> ${cliente.telefone}</small>
+        `;
+        
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            inputBusca.value = `${cliente.nome} - 📞 ${cliente.telefone}`;
+            inputHidden.value = cliente.id;
+            divSugestoes.style.display = 'none';
+        });
+        
+        divSugestoes.appendChild(item);
+    });
+    
+    divSugestoes.style.display = 'block';
+});
+
+// Fecha as sugestões ao clicar fora
+document.addEventListener('click', function(e) {
+    if (e.target !== inputBusca) {
+        divSugestoes.style.display = 'none';
+    }
+});
+
+// Validação antes de enviar
+document.getElementById('formVeiculo').addEventListener('submit', function(e) {
+    if (!inputHidden.value) {
+        e.preventDefault();
+        alert('Por favor, selecione um cliente da lista de sugestões');
+        inputBusca.focus();
+    }
+});
+</script>
+
+<style>
+/* Estilo para as sugestões */
+#sugestoes {
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    border: 1px solid #ddd;
+}
+
+#sugestoes .list-group-item:hover {
+    background-color: #f8f9fa;
+    cursor: pointer;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,227 @@
+{% extends 'base.html' %}
+
+{% block title %}Estoque - Sistema Oficina{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-box-seam"></i> Estoque</h2>
+    <a href="{{ url_for('estoque.novo') }}" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Novo Item
+    </a>
+</div>
+
+<!-- Estatísticas -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <h6>Total de Itens</h6>
+                <h3>{{ stats.total_itens or 0 }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card {% if stats.estoque_baixo > 0 %}bg-warning{% else %}bg-success{% endif %} text-white">
+            <div class="card-body">
+                <h6>Estoque Baixo</h6>
+                <h3>{{ stats.estoque_baixo or 0 }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <h6>Valor Total Estoque</h6>
+                <h3>R$ {{ '{:,.2f}'.format(stats.valor_total or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros por Categoria -->
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="btn-group" role="group">
+            <a href="{{ url_for('estoque.listar') }}" 
+               class="btn {% if not categoria_filtro %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                <i class="bi bi-grid-3x3"></i> Todos
+            </a>
+            <a href="{{ url_for('estoque.listar', categoria='PECAS') }}" 
+               class="btn {% if categoria_filtro == 'PECAS' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                <i class="bi bi-gear"></i> Peças
+            </a>
+            <a href="{{ url_for('estoque.listar', categoria='FLUIDOS') }}" 
+               class="btn {% if categoria_filtro == 'FLUIDOS' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                <i class="bi bi-droplet"></i> Fluidos
+            </a>
+            <a href="{{ url_for('estoque.listar', categoria='PNEUS') }}" 
+               class="btn {% if categoria_filtro == 'PNEUS' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                <i class="bi bi-circle"></i> Pneus
+            </a>
+            <a href="{{ url_for('estoque.listar', categoria='ELETRICA') }}" 
+               class="btn {% if categoria_filtro == 'ELETRICA' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                <i class="bi bi-lightning"></i> Elétrica
+            </a>
+            <a href="{{ url_for('estoque.listar', categoria='MAO_OBRA') }}" 
+               class="btn {% if categoria_filtro == 'MAO_OBRA' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                <i class="bi bi-wrench"></i> Mão de Obra
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Barra de Busca -->
+<div class="card mb-3">
+    <div class="card-body">
+        <input type="text" class="form-control" id="campoBusca" 
+               placeholder="Buscar por nome, código ou categoria...">
+    </div>
+</div>
+
+<!-- Tabela de Estoque -->
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover" id="tabelaEstoque">
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Nome</th>
+                        <th>Categoria</th>
+                        <th>Quantidade</th>
+                        <th>Custo</th>
+                        <th>Venda</th>
+                        <th>Margem</th>
+                        <th width="200">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in itens %}
+                    <tr class="linha-item {% if item.quantidade <= item.minimo_alerta %}table-warning{% endif %}"
+                        data-nome="{{ item.nome }}"
+                        data-codigo="{{ item.codigo or '' }}"
+                        data-categoria="{{ item.categoria }}">
+                        <td data-label="Código"><small class="text-muted">{{ item.codigo or '-' }}</small></td>
+                        <td data-label="Nome">
+                            <strong>{{ item.nome }}</strong>
+                            {% if item.quantidade <= item.minimo_alerta %}
+                                <span class="badge bg-warning text-dark ms-2">
+                                    <i class="bi bi-exclamation-triangle"></i> Baixo
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td data-label="Categoria">
+                            {% if item.categoria == 'PECAS' %}
+                                <span class="badge bg-secondary"><i class="bi bi-gear"></i> Peças</span>
+                            {% elif item.categoria == 'FLUIDOS' %}
+                                <span class="badge bg-info"><i class="bi bi-droplet"></i> Fluidos</span>
+                            {% elif item.categoria == 'PNEUS' %}
+                                <span class="badge bg-dark"><i class="bi bi-circle"></i> Pneus</span>
+                            {% elif item.categoria == 'ELETRICA' %}
+                                <span class="badge bg-warning text-dark"><i class="bi bi-lightning"></i> Elétrica</span>
+                            {% elif item.categoria == 'MAO_OBRA' %}
+                                <span class="badge bg-success"><i class="bi bi-wrench"></i> Mão de Obra</span>
+                            {% endif %}
+                        </td>
+                        <td data-label="Quantidade">
+                            <strong>{{ item.quantidade }}</strong>
+                            <small class="text-muted">/ {{ item.minimo_alerta }}</small>
+                        </td>
+                        <td data-label="Custo">R$ {{ '{:,.2f}'.format(item.custo).replace(',', 'X').replace('.', ',').replace('X', '.') }}</td>
+                        <td data-label="Venda">R$ {{ '{:,.2f}'.format(item.venda).replace(',', 'X').replace('.', ',').replace('X', '.') }}</td>
+                        <td data-label="Margem">
+                            {% set margem = ((item.venda - item.custo) / item.custo * 100) if item.custo > 0 else 0 %}
+                            <span class="badge {% if margem > 50 %}bg-success{% elif margem > 20 %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+                                {{ '{:.0f}'.format(margem) }}%
+                            </span>
+                        </td>
+                        <td data-label="Ações">
+                            <!-- Botão Ajustar Estoque -->
+                            <button class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#modalAjuste{{ item.id }}">
+                                <i class="bi bi-arrow-down-up"></i>
+                            </button>
+                            
+                            <a href="{{ url_for('estoque.editar', item_id=item.id) }}" 
+                               class="btn btn-sm btn-warning">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            
+                            <form method="POST" action="{{ url_for('estoque.deletar', item_id=item.id) }}" 
+                                  style="display:inline;" onsubmit="return confirm('Tem certeza?')">
+                                <button type="submit" class="btn btn-sm btn-danger">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    
+                    <!-- Modal de Ajuste de Estoque -->
+                    <div class="modal fade" id="modalAjuste{{ item.id }}" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Ajustar Estoque - {{ item.nome }}</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <form method="POST" action="{{ url_for('estoque.ajustar', item_id=item.id) }}">
+                                    <div class="modal-body">
+                                        <p>Quantidade atual: <strong>{{ item.quantidade }}</strong></p>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">Tipo</label>
+                                            <select class="form-select" name="tipo" required>
+                                                <option value="entrada">➕ Entrada (adicionar)</option>
+                                                <option value="saida">➖ Saída (retirar)</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label class="form-label">Quantidade</label>
+                                            <input type="number" class="form-control" name="quantidade" min="1" required>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                        <button type="submit" class="btn btn-primary">Confirmar</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center">
+                            Nenhum item cadastrado
+                            <br><br>
+                            <a href="{{ url_for('estoque.novo') }}" class="btn btn-primary">
+                                <i class="bi bi-plus-circle"></i> Cadastrar Primeiro Item
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+// Busca em tempo real
+document.getElementById('campoBusca').addEventListener('keyup', function() {
+    const termo = this.value.toLowerCase().trim();
+    const linhas = document.querySelectorAll('.linha-item');
+    
+    linhas.forEach(linha => {
+        const nome = linha.getAttribute('data-nome').toLowerCase();
+        const codigo = linha.getAttribute('data-codigo').toLowerCase();
+        const categoria = linha.getAttribute('data-categoria').toLowerCase();
+        
+        if (nome.includes(termo) || codigo.includes(termo) || categoria.includes(termo)) {
+            linha.style.display = '';
+        } else {
+            linha.style.display = 'none';
+        }
+    });
+});
+</script>
+{% endblock %}

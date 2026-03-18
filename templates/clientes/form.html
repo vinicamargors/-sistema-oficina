@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if cliente %}Editar{% else %}Novo{% endif %} Cliente{% endblock %}
+
+{% block content %}
+<h2>{% if cliente %}Editar{% else %}Novo{% endif %} Cliente</h2>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            <div class="mb-3">
+                <label for="nome" class="form-label">Nome *</label>
+                <input type="text" class="form-control" id="nome" name="nome" 
+                       value="{{ cliente.nome if cliente else '' }}" required>
+            </div>
+
+            <div class="mb-3">
+                <label for="telefone" class="form-label">Telefone *</label>
+                <input type="text" class="form-control" id="telefone" name="telefone" 
+                       value="{{ cliente.telefone if cliente else '' }}" required>
+            </div>
+
+            <div class="mb-3">
+                <label for="cpf_cnpj" class="form-label">CPF/CNPJ</label>
+                <input type="text" class="form-control" id="cpf_cnpj" name="cpf_cnpj" 
+                       value="{{ cliente.cpf_cnpj if cliente else '' }}">
+            </div>
+
+            <div class="mb-3">
+                <label for="endereco" class="form-label">Endereço</label>
+                <textarea class="form-control" id="endereco" name="endereco" rows="3">{{ cliente.endereco if cliente else '' }}</textarea>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-check-circle"></i> Salvar
+                </button>
+                <a href="{{ url_for('clientes.listar') }}" class="btn btn-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OS #{{ ordem.id[:8] }} - {{ ordem.clientes.nome if ordem.clientes else '' }}</title>
+    
+    <style>
+        /* ========== RESET ========== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* ========== ESTILOS GERAIS ========== */
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        }
+
+        /* ========== CABEÇALHO ========== */
+        .header {
+            text-align: center;
+            border-bottom: 3px solid #1e3a8a;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #1e3a8a;
+            font-size: 2rem;
+            margin-bottom: 5px;
+        }
+
+        .header .subtitle {
+            color: #f97316;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .header .info {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        /* ========== NÚMERO DA OS ========== */
+        .os-number {
+            background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            margin-bottom: 30px;
+            border-radius: 5px;
+        }
+
+        .os-number h2 {
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+        }
+
+        .os-number .date {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        /* ========== SEÇÕES ========== */
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            background-color: #f3f4f6;
+            padding: 10px 15px;
+            font-weight: bold;
+            color: #1e3a8a;
+            border-left: 4px solid #f97316;
+            margin-bottom: 15px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .info-box {
+            border: 1px solid #e5e7eb;
+            padding: 15px;
+            border-radius: 5px;
+        }
+
+        .info-box h3 {
+            font-size: 0.9rem;
+            color: #6b7280;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .info-box p {
+            margin: 5px 0;
+        }
+
+        .info-box strong {
+            color: #1f2937;
+        }
+
+        /* ========== TABELA DE ITENS ========== */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        table thead {
+            background-color: #1e3a8a;
+            color: white;
+        }
+
+        table th {
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        table td {
+            padding: 12px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        table tbody tr:hover {
+            background-color: #f9fafb;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        /* ========== TOTAIS ========== */
+        .totals {
+            margin-top: 30px;
+            border-top: 2px solid #1e3a8a;
+            padding-top: 20px;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            font-size: 1.1rem;
+        }
+
+        .total-row.grand-total {
+            background-color: #1e3a8a;
+            color: white;
+            padding: 15px 20px;
+            margin-top: 10px;
+            border-radius: 5px;
+            font-size: 1.3rem;
+            font-weight: bold;
+        }
+
+        /* ========== DESCRIÇÃO ========== */
+        .description-box {
+            background-color: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .description-box h4 {
+            color: #92400e;
+            margin-bottom: 10px;
+        }
+
+        .description-box p {
+            color: #78350f;
+            line-height: 1.8;
+        }
+
+        /* ========== RODAPÉ ========== */
+        .footer {
+            margin-top: 50px;
+            padding-top: 30px;
+            border-top: 2px solid #e5e7eb;
+        }
+
+        .signature-area {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-top: 30px;
+        }
+
+        .signature-box {
+            text-align: center;
+        }
+
+        .signature-line {
+            border-top: 2px solid #333;
+            margin-top: 60px;
+            padding-top: 10px;
+            font-size: 0.9rem;
+        }
+
+        .terms {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #f9fafb;
+            border-radius: 5px;
+            font-size: 0.8rem;
+            color: #6b7280;
+        }
+
+        .terms h4 {
+            color: #1f2937;
+            margin-bottom: 10px;
+        }
+
+        .terms ul {
+            margin-left: 20px;
+        }
+
+        .terms li {
+            margin: 5px 0;
+        }
+
+        /* ========== BOTÕES (NÃO IMPRIMEM) ========== */
+        .print-actions {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background-color: #6b7280;
+            color: white;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        /* ========== STATUS BADGE ========== */
+        .status-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .status-orcamento { background-color: #e5e7eb; color: #374151; }
+        .status-aguardando { background-color: #fef3c7; color: #92400e; }
+        .status-execucao { background-color: #dbeafe; color: #1e40af; }
+        .status-finalizado { background-color: #d1fae5; color: #065f46; }
+        .status-pago { background-color: #dbeafe; color: #1e40af; }
+
+        /* ========== PRINT ========== */
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .container {
+                box-shadow: none;
+                padding: 20px;
+            }
+
+            .print-actions {
+                display: none !important;
+            }
+
+            .total-row.grand-total {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            table thead {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            @page {
+                margin: 1cm;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Botões de ação (não aparecem na impressão) -->
+    <div class="print-actions">
+        <button onclick="window.print()" class="btn btn-primary">
+            🖨️ Imprimir
+        </button>
+        <a href="{{ url_for('os.editar', os_id=ordem.id) }}" class="btn btn-secondary">
+            ← Voltar
+        </a>
+    </div>
+
+    <div class="container">
+        <!-- Cabeçalho -->
+        <div class="header">
+            <h1>🔧 SISTEMA OFICINA</h1>
+            <div class="subtitle">ORDEM DE SERVIÇO</div>
+            <div class="info">
+                Endereço da Oficina • Telefone: (XX) XXXX-XXXX • Email: contato@oficina.com
+            </div>
+        </div>
+
+        <!-- Número da OS e Data -->
+        <div class="os-number">
+            <h2>OS #{{ ordem.id[:8] }}</h2>
+            <div class="date">
+                Aberta em: {{ ordem.data_abertura[:10] if ordem.data_abertura else '-' }}
+                {% if ordem.data_fechamento %}
+                    | Fechada em: {{ ordem.data_fechamento[:10] }}
+                {% endif %}
+            </div>
+            <div style="margin-top: 10px;">
+                {% if ordem.status == 'ORCAMENTO' %}
+                    <span class="status-badge status-orcamento">Orçamento</span>
+                {% elif ordem.status == 'AGUARDANDO_PECA' %}
+                    <span class="status-badge status-aguardando">Aguardando Peça</span>
+                {% elif ordem.status == 'EXECUCAO' %}
+                    <span class="status-badge status-execucao">Em Execução</span>
+                {% elif ordem.status == 'FINALIZADO' %}
+                    <span class="status-badge status-finalizado">Finalizado</span>
+                {% elif ordem.status == 'PAGO' %}
+                    <span class="status-badge status-pago">Pago</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Dados Cliente e Veículo -->
+        <div class="section">
+            <div class="info-grid">
+                <!-- Cliente -->
+                <div class="info-box">
+                    <h3>👤 Dados do Cliente</h3>
+                    {% if ordem.clientes %}
+                        <p><strong>Nome:</strong> {{ ordem.clientes.nome }}</p>
+                        <p><strong>Telefone:</strong> {{ ordem.clientes.telefone }}</p>
+                        {% if ordem.clientes.cpf_cnpj %}
+                            <p><strong>CPF/CNPJ:</strong> {{ ordem.clientes.cpf_cnpj }}</p>
+                        {% endif %}
+                        {% if ordem.clientes.endereco %}
+                            <p><strong>Endereço:</strong> {{ ordem.clientes.endereco }}</p>
+                        {% endif %}
+                    {% endif %}
+                </div>
+
+                <!-- Veículo -->
+                <div class="info-box">
+                    <h3>🚗 Dados do Veículo</h3>
+                    {% if ordem.veiculos %}
+                        <p><strong>Placa:</strong> {{ ordem.veiculos.placa }}</p>
+                        <p><strong>Modelo:</strong> {{ ordem.veiculos.modelo }}</p>
+                        {% if ordem.veiculos.marca %}
+                            <p><strong>Marca:</strong> {{ ordem.veiculos.marca }}</p>
+                        {% endif %}
+                        {% if ordem.veiculos.cor %}
+                            <p><strong>Cor:</strong> {{ ordem.veiculos.cor }}</p>
+                        {% endif %}
+                        {% if ordem.km_atual %}
+                            <p><strong>KM:</strong> {{ '{:,}'.format(ordem.km_atual).replace(',', '.') }}</p>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Descrição do Problema -->
+        {% if ordem.descricao_problema %}
+        <div class="description-box">
+            <h4>📋 Descrição do Problema/Serviço</h4>
+            <p>{{ ordem.descricao_problema }}</p>
+        </div>
+        {% endif %}
+
+        <!-- Itens e Serviços -->
+        <div class="section">
+            <div class="section-title">ITENS E SERVIÇOS</div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tipo</th>
+                        <th>Descrição</th>
+                        <th class="text-center">Qtd</th>
+                        <th class="text-right">Valor Unit.</th>
+                        <th class="text-right">Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in itens %}
+                    <tr>
+                        <td>
+                            {% if item.tipo == 'PECA' %}
+                                🔧 Peça
+                            {% else %}
+                                🔨 Serviço
+                            {% endif %}
+                        </td>
+                        <td><strong>{{ item.nome_item }}</strong></td>
+                        <td class="text-center">{{ item.quantidade }}</td>
+                        <td class="text-right">R$ {{ '{:,.2f}'.format(item.venda_unitario).replace(',', 'X').replace('.', ',').replace('X', '.') }}</td>
+                        <td class="text-right"><strong>R$ {{ '{:,.2f}'.format(item.quantidade * item.venda_unitario).replace(',', 'X').replace('.', ',').replace('X', '.') }}</strong></td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center" style="padding: 30px; color: #9ca3af;">
+                            Nenhum item adicionado a esta OS
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Totais -->
+        <div class="totals">
+            <div class="total-row">
+                <span>Subtotal Peças:</span>
+                <strong>R$ {{ '{:,.2f}'.format(ordem.total_pecas).replace(',', 'X').replace('.', ',').replace('X', '.') }}</strong>
+            </div>
+            <div class="total-row">
+                <span>Subtotal Mão de Obra:</span>
+                <strong>R$ {{ '{:,.2f}'.format(ordem.total_mao_obra).replace(',', 'X').replace('.', ',').replace('X', '.') }}</strong>
+            </div>
+            <div class="total-row grand-total">
+                <span>TOTAL GERAL:</span>
+                <strong>R$ {{ '{:,.2f}'.format(ordem.total_geral).replace(',', 'X').replace('.', ',').replace('X', '.') }}</strong>
+            </div>
+            
+            {% if ordem.forma_pagamento %}
+            <div style="text-align: center; margin-top: 15px; color: #6b7280;">
+                <strong>Forma de Pagamento:</strong> {{ ordem.forma_pagamento }}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Rodapé -->
+        <div class="footer">
+            <!-- Assinaturas -->
+            <div class="signature-area">
+                <div class="signature-box">
+                    <div class="signature-line">
+                        Cliente
+                    </div>
+                </div>
+                <div class="signature-box">
+                    <div class="signature-line">
+                        Oficina
+                    </div>
+                </div>
+            </div>
+
+            <!-- Termos -->
+            <div class="terms">
+                <h4>Termos e Condições</h4>
+                <ul>
+                    <li>Garantia de 90 dias para peças e serviços executados</li>
+                    <li>Veículo fica retido até quitação total do serviço</li>
+                    <li>Prazo de retirada: 30 dias após finalização</li>
+                    <li>Oficina não se responsabiliza por objetos deixados no veículo</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Auto-focar na impressão quando carrega (opcional)
+        // window.onload = () => window.print();
+    </script>
+</body>
+</html>

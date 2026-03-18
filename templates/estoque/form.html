@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if item %}Editar{% else %}Novo{% endif %} Item - Estoque{% endblock %}
+
+{% block content %}
+<h2>{% if item %}Editar{% else %}Novo{% endif %} Item do Estoque</h2>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            <div class="row">
+                <!-- Nome -->
+                <div class="col-md-8 mb-3">
+                    <label for="nome" class="form-label">Nome do Item *</label>
+                    <input type="text" class="form-control" id="nome" name="nome" 
+                           value="{{ item.nome if item else '' }}" 
+                           placeholder="Ex: Filtro de Óleo" required>
+                </div>
+
+                <!-- Código -->
+                <div class="col-md-4 mb-3">
+                    <label for="codigo" class="form-label">Código/SKU</label>
+                    <input type="text" class="form-control" id="codigo" name="codigo" 
+                           value="{{ item.codigo if item else '' }}" 
+                           placeholder="Ex: FLT-001">
+                </div>
+            </div>
+
+            <!-- Categoria -->
+            <div class="mb-3">
+                <label for="categoria" class="form-label">Categoria *</label>
+                <select class="form-select" id="categoria" name="categoria" required>
+                    <option value="">Selecione uma categoria</option>
+                    <option value="PECAS" {% if item and item.categoria == 'PECAS' %}selected{% endif %}>
+                        🔧 Peças (filtros, pastilhas, correias, velas)
+                    </option>
+                    <option value="FLUIDOS" {% if item and item.categoria == 'FLUIDOS' %}selected{% endif %}>
+                        💧 Fluidos (óleos, aditivos, fluido de freio)
+                    </option>
+                    <option value="PNEUS" {% if item and item.categoria == 'PNEUS' %}selected{% endif %}>
+                        ⚫ Pneus (pneus, câmaras, válvulas)
+                    </option>
+                    <option value="ELETRICA" {% if item and item.categoria == 'ELETRICA' %}selected{% endif %}>
+                        ⚡ Elétrica (lâmpadas, fusíveis, bateria)
+                    </option>
+                    <option value="MAO_OBRA" {% if item and item.categoria == 'MAO_OBRA' %}selected{% endif %}>
+                        🔨 Mão de Obra (serviços sem peça)
+                    </option>
+                </select>
+            </div>
+
+            <div class="row">
+                <!-- Quantidade -->
+                <div class="col-md-3 mb-3">
+                    <label for="quantidade" class="form-label">Quantidade *</label>
+                    <input type="number" class="form-control" id="quantidade" name="quantidade" 
+                           value="{{ item.quantidade if item else 0 }}" min="0" required>
+                </div>
+
+                <!-- Mínimo Alerta -->
+                <div class="col-md-3 mb-3">
+                    <label for="minimo_alerta" class="form-label">Estoque Mínimo</label>
+                    <input type="number" class="form-control" id="minimo_alerta" name="minimo_alerta" 
+                           value="{{ item.minimo_alerta if item else 5 }}" min="0">
+                    <small class="text-muted">Alerta quando atingir</small>
+                </div>
+
+                <!-- Preço de Custo -->
+                <div class="col-md-3 mb-3">
+                    <label for="custo" class="form-label">Custo (R$) *</label>
+                    <input type="number" class="form-control" id="custo" name="custo" 
+                           value="{{ item.custo if item else '' }}" 
+                           step="0.01" min="0" required>
+                </div>
+
+                <!-- Preço de Venda -->
+                <div class="col-md-3 mb-3">
+                    <label for="venda" class="form-label">Venda (R$) *</label>
+                    <input type="number" class="form-control" id="venda" name="venda" 
+                           value="{{ item.venda if item else '' }}" 
+                           step="0.01" min="0" required>
+                </div>
+            </div>
+
+            <!-- Cálculo de Margem -->
+            <div class="alert alert-info" id="margemCalc" style="display: none;">
+                <strong>Margem de Lucro:</strong> <span id="margemValor"></span>%
+            </div>
+
+            <hr>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-check-circle"></i> Salvar
+                </button>
+                <a href="{{ url_for('estoque.listar') }}" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Calcular margem em tempo real
+const inputCusto = document.getElementById('custo');
+const inputVenda = document.getElementById('venda');
+const divMargem = document.getElementById('margemCalc');
+const spanMargem = document.getElementById('margemValor');
+
+function calcularMargem() {
+    const custo = parseFloat(inputCusto.value) || 0;
+    const venda = parseFloat(inputVenda.value) || 0;
+    
+    if (custo > 0 && venda > 0) {
+        const margem = ((venda - custo) / custo * 100).toFixed(2);
+        spanMargem.textContent = margem;
+        divMargem.style.display = 'block';
+        
+        // Mudar cor baseado na margem
+        if (margem > 50) {
+            divMargem.className = 'alert alert-success';
+        } else if (margem > 20) {
+            divMargem.className = 'alert alert-warning';
+        } else {
+            divMargem.className = 'alert alert-danger';
+        }
+    } else {
+        divMargem.style.display = 'none';
+    }
+}
+
+inputCusto.addEventListener('input', calcularMargem);
+inputVenda.addEventListener('input', calcularMargem);
+
+// Calcular na carga (modo edição)
+calcularMargem();
+</script>
+{% endblock %}

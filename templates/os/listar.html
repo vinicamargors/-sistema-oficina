@@ -1,0 +1,218 @@
+{% extends 'base.html' %}
+
+{% block title %}Ordens de Serviço - Sistema Oficina{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-file-earmark-text"></i> Ordens de Serviço</h2>
+    <div>
+        <!-- Botão alternar visão -->
+        <div class="btn-group me-2">
+            <a href="{{ url_for('os.listar', visao='lista') }}" 
+               class="btn {% if visao == 'lista' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                <i class="bi bi-list-ul"></i> Lista
+            </a>
+            <a href="{{ url_for('os.listar', visao='kanban') }}" 
+               class="btn {% if visao == 'kanban' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                <i class="bi bi-kanban"></i> Kanban
+            </a>
+        </div>
+        
+        <a href="{{ url_for('os.nova') }}" class="btn btn-success">
+            <i class="bi bi-plus-circle"></i> Nova OS
+        </a>
+    </div>
+</div>
+
+{% if visao == 'kanban' %}
+    <!-- VISÃO KANBAN -->
+    <div class="row g-3" id="kanban-board">
+        <!-- Coluna Orçamento -->
+        <div class="col">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <strong>📋 Orçamento</strong>
+                    <span class="badge bg-light text-dark">{{ ordens_por_status['ORCAMENTO']|length }}</span>
+                </div>
+                <div class="card-body p-2 kanban-column" data-status="ORCAMENTO" style="min-height: 500px;">
+                    {% for ordem in ordens_por_status['ORCAMENTO'] %}
+                        {% include 'os/_card_kanban.html' %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Coluna Aguardando Peça -->
+        <div class="col">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <strong>⏳ Aguardando Peça</strong>
+                    <span class="badge bg-light text-dark">{{ ordens_por_status['AGUARDANDO_PECA']|length }}</span>
+                </div>
+                <div class="card-body p-2 kanban-column" data-status="AGUARDANDO_PECA" style="min-height: 500px;">
+                    {% for ordem in ordens_por_status['AGUARDANDO_PECA'] %}
+                        {% include 'os/_card_kanban.html' %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Coluna Execução -->
+        <div class="col">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <strong>🔧 Em Execução</strong>
+                    <span class="badge bg-light text-dark">{{ ordens_por_status['EXECUCAO']|length }}</span>
+                </div>
+                <div class="card-body p-2 kanban-column" data-status="EXECUCAO" style="min-height: 500px;">
+                    {% for ordem in ordens_por_status['EXECUCAO'] %}
+                        {% include 'os/_card_kanban.html' %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Coluna Finalizado -->
+        <div class="col">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <strong>✅ Finalizado</strong>
+                    <span class="badge bg-light text-dark">{{ ordens_por_status['FINALIZADO']|length }}</span>
+                </div>
+                <div class="card-body p-2 kanban-column" data-status="FINALIZADO" style="min-height: 500px;">
+                    {% for ordem in ordens_por_status['FINALIZADO'] %}
+                        {% include 'os/_card_kanban.html' %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Coluna Pago -->
+        <div class="col">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <strong>💰 Pago</strong>
+                    <span class="badge bg-light text-dark">{{ ordens_por_status['PAGO']|length }}</span>
+                </div>
+                <div class="card-body p-2 kanban-column" data-status="PAGO" style="min-height: 500px;">
+                    {% for ordem in ordens_por_status['PAGO'] %}
+                        {% include 'os/_card_kanban.html' %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% else %}
+    <!-- VISÃO LISTA -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Cliente</th>
+                            <th>Veículo</th>
+                            <th>Status</th>
+                            <th>Total</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+    {% for veiculo in veiculos %}
+    <tr>
+        <td data-label="Placa"><strong>{{ veiculo.placa }}</strong></td>
+        <td data-label="Modelo">{{ veiculo.modelo }}</td>
+        <td data-label="Marca">{{ veiculo.marca or '-' }}</td>
+        <td data-label="Cliente">
+            {% if veiculo.clientes %}
+                {{ veiculo.clientes.nome }}
+                <br><small class="text-muted">{{ veiculo.clientes.telefone }}</small>
+            {% endif %}
+        </td>
+        <td data-label="Ações">
+            <a href="{{ url_for('veiculos.editar', veiculo_id=veiculo.id) }}" 
+               class="btn btn-sm btn-warning">
+                <i class="bi bi-pencil"></i>
+            </a>
+            <form method="POST" action="{{ url_for('veiculos.deletar', veiculo_id=veiculo.id) }}" 
+                  style="display:inline;" onsubmit="return confirm('Tem certeza?')">
+                <button type="submit" class="btn btn-sm btn-danger">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </form>
+        </td>
+    </tr>
+    {% endfor %}
+</tbody>
+
+                </table>
+            </div>
+        </div>
+    </div>
+{% endif %}
+
+<!-- SortableJS para drag & drop -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+
+<script>
+{% if visao == 'kanban' %}
+// Inicializar drag & drop no Kanban
+document.querySelectorAll('.kanban-column').forEach(column => {
+    new Sortable(column, {
+        group: 'kanban',
+        animation: 150,
+        ghostClass: 'sortable-ghost',
+        onEnd: function(evt) {
+            const osId = evt.item.getAttribute('data-os-id');
+            const novoStatus = evt.to.getAttribute('data-status');
+            
+            // Enviar atualização para o servidor
+            fetch(`/os/${osId}/atualizar_status`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `status=${novoStatus}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Atualizar badge de contagem
+                    document.querySelectorAll('.kanban-column').forEach(col => {
+                        const status = col.getAttribute('data-status');
+                        const count = col.querySelectorAll('.kanban-card').length;
+                        col.closest('.card').querySelector('.badge').textContent = count;
+                    });
+                } else {
+                    alert('Erro ao atualizar status: ' + data.error);
+                    location.reload();
+                }
+            })
+            .catch(error => {
+                alert('Erro de conexão');
+                location.reload();
+            });
+        }
+    });
+});
+{% endif %}
+</script>
+
+<style>
+.sortable-ghost {
+    opacity: 0.4;
+    background: #f8f9fa;
+}
+
+.kanban-card {
+    cursor: move;
+}
+
+.kanban-column {
+    background: #f8f9fa;
+    border-radius: 0.25rem;
+}
+</style>
+{% endblock %}

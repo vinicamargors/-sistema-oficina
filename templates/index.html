@@ -1,0 +1,383 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Sistema Oficina{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">🏠 Dashboard</h2>
+
+<!-- Cards principais -->
+<div class="row g-3 mb-4">
+    <div class="col-12 col-sm-6 col-md-3">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <h6>OS Abertas</h6>
+                <h3 class="mb-0">{{ stats.total_abertas }}</h3>
+                <small class="text-white-50">
+                    Orçamento: {{ stats.status_counts.ORCAMENTO }} |
+                    Aguardando: {{ stats.status_counts.AGUARDANDO_PECA }} |
+                    Execução: {{ stats.status_counts.EXECUCAO }}
+                </small>
+            </div>
+        </div>
+    </div>
+    
+    {% if pode_ver_financeiro %}
+    <div class="col-12 col-sm-6 col-md-3">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <h6>Faturamento (mês atual)</h6>
+                <h3 class="mb-0">
+                    R$ {{ '{:,.2f}'.format(stats.faturamento_mes).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+                </h3>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-12 col-sm-6 col-md-3">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <h6>Lucro Estimado (mês)</h6>
+                <h3 class="mb-0">
+                    R$ {{ '{:,.2f}'.format(stats.lucro_mes).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+                </h3>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12 col-sm-6 col-md-3">
+        <div class="card text-white bg-info">
+            <div class="card-body">
+                <h6>OS Finalizadas (mês)</h6>
+                <h3 class="mb-0">{{ stats.status_counts.FINALIZADO }}</h3>
+                <small class="text-white-50">Aguardando pagamento</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-12 col-sm-6 col-md-3">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <h6>OS Pagas (mês)</h6>
+                <h3 class="mb-0">{{ stats.status_counts.PAGO }}</h3>
+                <small class="text-white-50">Concluídas com sucesso</small>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <div class="col-12 col-sm-6 col-md-3">
+        <div class="card text-white {% if stats.estoque_critico_count > 0 %}bg-danger{% else %}bg-secondary{% endif %}">
+            <div class="card-body">
+                <h6><i class="bi bi-exclamation-triangle"></i> Estoque Crítico</h6>
+                <h3 class="mb-0">{{ stats.estoque_critico_count }}</h3>
+                <small class="text-white-50">
+                    {% if stats.estoque_critico_count > 0 %}
+                        Itens precisam reposição
+                    {% else %}
+                        Tudo OK!
+                    {% endif %}
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    {% if pode_ver_financeiro %}
+    <!-- Gráfico Faturamento (só DONO) -->
+    <div class="col-12 col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <strong><i class="bi bi-graph-up"></i> Faturamento últimos 6 meses</strong>
+            </div>
+            <div class="card-body">
+                <canvas id="graficoFaturamento" height="120"></canvas>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <!-- OS por Status (Mecânico/Recepção) -->
+    <div class="col-12 col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <strong><i class="bi bi-list-check"></i> Ordens de Serviço por Status</strong>
+            </div>
+            <div class="card-body">
+                <div class="row row-cols-2 row-cols-md-3 row-cols-lg-5 g-3 text-center">
+                    <div class="col">
+                        <div class="p-3 border rounded">
+                            <h5 class="mb-1">{{ stats.status_counts.ORCAMENTO }}</h5>
+                            <small class="text-muted">Orçamento</small>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="p-3 border rounded bg-warning bg-opacity-10">
+                            <h5 class="mb-1">{{ stats.status_counts.AGUARDANDO_PECA }}</h5>
+                            <small class="text-muted">Aguardando</small>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="p-3 border rounded bg-info bg-opacity-10">
+                            <h5 class="mb-1">{{ stats.status_counts.EXECUCAO }}</h5>
+                            <small class="text-muted">Execução</small>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="p-3 border rounded bg-success bg-opacity-10">
+                            <h5 class="mb-1">{{ stats.status_counts.FINALIZADO }}</h5>
+                            <small class="text-muted">Finalizado</small>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="p-3 border rounded bg-primary bg-opacity-10">
+                            <h5 class="mb-1">{{ stats.status_counts.PAGO }}</h5>
+                            <small class="text-muted">Pago</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Gráfico OS por Status -->
+    <div class="col-12 col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <strong><i class="bi bi-pie-chart"></i> Distribuição de OS</strong>
+            </div>
+            <div class="card-body">
+                <canvas id="graficoPizza" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Estoque Crítico -->
+    <div class="col-12 col-lg-4 order-2 order-lg-1">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <strong><i class="bi bi-exclamation-triangle"></i> Estoque Crítico</strong>
+            </div>
+            <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                {% if itens_criticos %}
+                    <ul class="list-group list-group-flush">
+                        {% for item in itens_criticos %}
+                        <li class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center flex-wrap">
+                                <div class="mb-2 mb-sm-0">
+                                    <strong>{{ item.nome }}</strong>
+                                    <br>
+                                    <small class="text-muted">
+                                        {% if item.categoria == 'PECAS' %}
+                                            <span class="badge bg-secondary"><i class="bi bi-gear"></i> Peças</span>
+                                        {% elif item.categoria == 'FLUIDOS' %}
+                                            <span class="badge bg-info"><i class="bi bi-droplet"></i> Fluidos</span>
+                                        {% elif item.categoria == 'PNEUS' %}
+                                            <span class="badge bg-dark"><i class="bi bi-circle"></i> Pneus</span>
+                                        {% elif item.categoria == 'ELETRICA' %}
+                                            <span class="badge bg-warning text-dark"><i class="bi bi-lightning"></i> Elétrica</span>
+                                        {% endif %}
+                                    </small>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge bg-danger fs-6">{{ item.quantidade }}</span>
+                                    <br>
+                                    <small class="text-muted">Mín: {{ item.minimo_alerta }}</small>
+                                </div>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    <div class="text-center mt-3">
+                        <a href="{{ url_for('estoque.listar') }}" class="btn btn-sm btn-danger">
+                            <i class="bi bi-box-seam"></i> Gerenciar Estoque
+                        </a>
+                    </div>
+                {% else %}
+                    <div class="text-center text-success py-4">
+                        <i class="bi bi-check-circle" style="font-size: 3rem;"></i>
+                        <p class="mt-2 mb-0">Nenhum item crítico!</p>
+                        <small class="text-muted">Todos os itens estão acima do mínimo</small>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Últimas OS -->
+    <div class="col-12 col-lg-8 order-1 order-lg-2">
+        <div class="card">
+            <div class="card-header">
+                <strong><i class="bi bi-file-earmark-text"></i> Últimas Ordens de Serviço</strong>
+            </div>
+            <div class="card-body">
+                {% if ultimas_os %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>OS</th>
+                                    <th>Cliente</th>
+                                    <th>Veículo</th>
+                                    <th>Data</th>
+                                    <th>Status</th>
+                                    {% if pode_ver_financeiro %}
+                                    <th>Total</th>
+                                    {% endif %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for os in ultimas_os %}
+                                <tr>
+                                    <td data-label="OS"><strong>#{{ os.id[:8] }}</strong></td>
+                                    <td data-label="Cliente">
+                                        {% if os.clientes %}
+                                            {{ os.clientes.nome }}
+                                            <br><small class="text-muted">{{ os.clientes.telefone }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td data-label="Veículo">
+                                        {% if os.veiculos %}
+                                            <strong>{{ os.veiculos.placa }}</strong>
+                                            <br><small class="text-muted">{{ os.veiculos.modelo }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td data-label="Data">
+                                        <small>{{ os.data_abertura[:10] if os.data_abertura else '-' }}</small>
+                                    </td>
+                                    <td data-label="Status">
+                                        {% if os.status == 'ORCAMENTO' %}
+                                            <span class="badge bg-secondary">Orçamento</span>
+                                        {% elif os.status == 'AGUARDANDO_PECA' %}
+                                            <span class="badge bg-warning text-dark">Aguardando</span>
+                                        {% elif os.status == 'EXECUCAO' %}
+                                            <span class="badge bg-info">Execução</span>
+                                        {% elif os.status == 'FINALIZADO' %}
+                                            <span class="badge bg-success">Finalizado</span>
+                                        {% elif os.status == 'PAGO' %}
+                                            <span class="badge bg-primary">Pago</span>
+                                        {% endif %}
+                                    </td>
+                                    {% if pode_ver_financeiro %}
+                                    <td data-label="Total">
+                                        <strong class="text-success">
+                                            R$ {{ '{:,.2f}'.format(os.total_geral or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+                                        </strong>
+                                    </td>
+                                    {% endif %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="text-center mt-3">
+                        <a href="{{ url_for('os.listar') }}" class="btn btn-sm btn-primary">
+                            <i class="bi bi-list-ul"></i> Ver Todas as OS
+                        </a>
+                    </div>
+                {% else %}
+                    <p class="text-muted text-center mb-0 py-4">Nenhuma OS cadastrada ainda.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+{% if pode_ver_financeiro %}
+// Gráfico de Barras - Faturamento (só DONO)
+const ctxBar = document.getElementById('graficoFaturamento').getContext('2d');
+const labels = {{ meses_labels|tojson }};
+const dataValores = {{ meses_valores|tojson }};
+
+new Chart(ctxBar, {
+    type: 'bar',
+    data: {
+        labels: labels,
+        datasets: [{
+            label: 'Faturamento (R$)',
+            data: dataValores,
+            backgroundColor: 'rgba(25, 135, 84, 0.6)',
+            borderColor: 'rgba(25, 135, 84, 1)',
+            borderWidth: 1,
+            borderRadius: 6
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) {
+                        return 'R$ ' + value.toLocaleString('pt-BR', { minimumFractionDigits: 0 });
+                    }
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                display: false
+            }
+        }
+    }
+});
+{% endif %}
+
+// Gráfico de Pizza - OS por Status
+const ctxPie = document.getElementById('graficoPizza').getContext('2d');
+
+const statusData = {
+    labels: ['Orçamento', 'Aguardando Peça', 'Execução', 'Finalizado', 'Pago'],
+    datasets: [{
+        data: [
+            {{ stats.status_counts.ORCAMENTO }},
+            {{ stats.status_counts.AGUARDANDO_PECA }},
+            {{ stats.status_counts.EXECUCAO }},
+            {{ stats.status_counts.FINALIZADO }},
+            {{ stats.status_counts.PAGO }}
+        ],
+        backgroundColor: [
+            'rgba(108, 117, 125, 0.8)',
+            'rgba(255, 193, 7, 0.8)',
+            'rgba(13, 202, 240, 0.8)',
+            'rgba(25, 135, 84, 0.8)',
+            'rgba(13, 110, 253, 0.8)'
+        ],
+        borderColor: [
+            'rgba(108, 117, 125, 1)',
+            'rgba(255, 193, 7, 1)',
+            'rgba(13, 202, 240, 1)',
+            'rgba(25, 135, 84, 1)',
+            'rgba(13, 110, 253, 1)'
+        ],
+        borderWidth: 2
+    }]
+};
+
+new Chart(ctxPie, {
+    type: 'doughnut',
+    data: statusData,
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    padding: 10,
+                    font: {
+                        size: 11
+                    }
+                }
+            }
+        }
+    }
+});
+</script>
+{% endblock %}
