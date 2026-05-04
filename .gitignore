@@ -1,0 +1,63 @@
+# Variáveis de ambiente (todas as variações)
+.env
+.env.*
+.env.local
+.env.production
+.env.staging
+!.env.example        # ← ESTE pode subir (é o template sem dados reais)
+
+# Configurações com segredos
+config.ini
+config.cfg
+secrets.json
+secrets.yml
+instance/           # pasta instance/ do Flask tem config local
+__pycache__/
+__pycache__
+*/__pycache__
+
+# Arquivos de banco de dados locais
+*.db
+*.sqlite
+*.sqlite3
+*.sql           # dumps de banco podem ter dados reais
+
+# Migrations com dados sensíveis (opcional, avalie caso a caso)
+# migrations/versions/   ← não ignore se você quer versionar migrations
+
+# Flask session files
+flask_session/
+
+# Uploads de usuários (nunca subir arquivos enviados ao sistema)
+uploads/
+static/uploads/
+media/
+
+# Relatórios e exports gerados
+reports/
+exports/
+*.csv           # cuidado: pode ter dados de clientes/oficina
+*.xlsx
+
+# Chaves SSL/TLS e certificados
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*.cer
+
+# Chaves SSH
+id_rsa
+id_rsa.pub
+*.ppk
+
+# Render / Deploy configs com segredos
+render.yaml     # se tiver envs hardcoded
+.render-buildpacks
+
+# Pytest e coverage (não são sensíveis, mas desnecessários)
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml

@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Gestão Autotec{% endblock %}</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+
+    {% if empresa_config %}
+    <style>
+        :root {
+            --cor-primaria:   {{ empresa_config.cor_primaria   or '#1e3a8a' }};
+            --cor-secundaria: {{ empresa_config.cor_secundaria or '#f97316' }};
+        }
+    </style>
+    {% endif %}
+</head>
+<body>
+
+    <!-- ── BARRA MASTER (só visível para o master) ────────── -->
+    {% if user_cargo == 'master' %}
+    <div class="master-bar d-flex align-items-center justify-content-between px-3 py-1">
+        <span class="d-flex align-items-center gap-2">
+            <i class="bi bi-shield-fill-check text-warning"></i>
+            <small class="text-white fw-semibold">Modo Master</small>
+            {% if session.get('master_empresa_nome') %}
+                <span class="badge bg-warning text-dark ms-1">
+                    <i class="bi bi-eye"></i>
+                    Visualizando: {{ session.master_empresa_nome }}
+                </span>
+            {% else %}
+                <span class="badge bg-secondary ms-1">Visão global</span>
+            {% endif %}
+        </span>
+
+        <div class="d-flex align-items-center gap-2">
+            <!-- Trocar empresa -->
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-warning dropdown-toggle" 
+                        type="button" data-bs-toggle="dropdown">
+                    <i class="bi bi-building-gear"></i> Trocar empresa
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end master-empresa-list">
+                    <li><h6 class="dropdown-header">Selecionar empresa</h6></li>
+                    <li>
+                        <form method="POST" action="{{ url_for('empresas.master_trocar_empresa') }}">
+                            <input type="hidden" name="empresa_id" value="">
+                            <button type="submit" class="dropdown-item {% if not session.get('master_empresa_id') %}active{% endif %}">
+                                <i class="bi bi-globe"></i> Visão global (todas)
+                            </button>
+                        </form>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    {% for emp in master_empresas %}
+                    <li>
+                        <form method="POST" action="{{ url_for('empresas.master_trocar_empresa') }}">
+                            <input type="hidden" name="empresa_id" value="{{ emp.id }}">
+                            <button type="submit" 
+                                    class="dropdown-item {% if session.get('master_empresa_id') == emp.id %}active{% endif %}">
+                                <i class="bi bi-building"></i>
+                                {{ emp.nome_fantasia }}
+                                {% if not emp.ativo %}
+                                    <span class="badge bg-danger ms-1">inativa</span>
+                                {% endif %}
+                            </button>
+                        </form>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <!-- Painel admin -->
+            <a href="{{ url_for('empresas.listar') }}" class="btn btn-sm btn-warning">
+                <i class="bi bi-grid-3x3-gap"></i> Painel admin
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ── NAVBAR ─────────────────────────────────────────── -->
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom">
+        <div class="container-fluid">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="{{ url_for('index') }}">
+                {% if empresa_config and empresa_config.logo_b64 %}
+                    <img src="{{ empresa_config.logo_b64 }}" height="80" alt="Logo Oficina">
+                {% elif logo_b64 %}
+                    <img src="{{ logo_b64 }}" height="80" alt="Logo Oficina">
+                {% else %}
+                    <i class="bi bi-wrench-adjustable-circle"></i>
+                {% endif %}
+                {{ empresa_config.nome_exibicao if empresa_config and empresa_config.nome_exibicao else 'Gestão Autotec' }}
+            </a>
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('index') }}">
+                            <i class="bi bi-speedometer2"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('clientes.listar') }}">
+                            <i class="bi bi-people"></i> Clientes
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('veiculos.listar') }}">
+                            <i class="bi bi-car-front"></i> Veículos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('estoque.listar') }}">
+                            <i class="bi bi-box-seam"></i> Estoque
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('os.listar') }}">
+                            <i class="bi bi-file-earmark-text"></i> Ordens de Serviço
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- Usuário logado -->
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle d-flex align-items-center gap-2" 
+                           href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle fs-5"></i>
+                            <span>{{ session.user_nome }}</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <h6 class="dropdown-header">
+                                    <small class="text-muted">{{ session.user_email }}</small>
+                                </h6>
+                            </li>
+                            <li>
+                                <span class="dropdown-item-text">
+                                    {% if user_cargo == 'DONO' %}
+                                        <span class="badge bg-danger">Dono</span>
+                                    {% elif user_cargo == 'master' %}
+                                        <span class="badge bg-warning text-dark">Master</span>
+                                    {% elif user_cargo == 'MECANICO' %}
+                                        <span class="badge bg-primary">Mecânico</span>
+                                    {% elif user_cargo == 'RECEPCAO' %}
+                                        <span class="badge bg-success">Recepção</span>
+                                    {% endif %}
+                                </span>
+                            </li>
+
+                            {% if user_cargo in ('DONO', 'master') %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('auth.listar_usuarios') }}">
+                                    <i class="bi bi-people"></i> Gerenciar Usuários
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('empresas.configuracoes') }}">
+                                    <i class="bi bi-gear"></i> Configurações da Empresa
+                                </a>
+                            </li>
+                            {% endif %}
+
+                            {% if user_cargo == 'master' %}
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('logs.listar') }}">
+                                    <i class="bi bi-journal-text"></i> Logs de Auditoria
+                                </a>
+                            </li>
+                            {% endif %}
+
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item text-danger" href="{{ url_for('auth.logout') }}">
+                                    <i class="bi bi-box-arrow-right"></i> Sair
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ── FLASH MESSAGES ─────────────────────────────────── -->
+    <div class="container-fluid">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="row mt-3">
+                    <div class="col-12">
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {% if category == 'success' %}
+                                    <i class="bi bi-check-circle-fill me-2"></i>
+                                {% elif category == 'danger' %}
+                                    <i class="bi bi-exclamation-circle-fill me-2"></i>
+                                {% elif category == 'warning' %}
+                                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                                {% else %}
+                                    <i class="bi bi-info-circle-fill me-2"></i>
+                                {% endif %}
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- ── FOOTER ─────────────────────────────────────────── -->
+    <footer class="footer mt-auto py-4">
+        <div class="container-fluid px-4">
+            <div class="row align-items-center g-3">
+                <div class="col-md-3 text-center text-md-start">
+                    {% if empresa_config and empresa_config.logo_b64 %}
+                        <img src="{{ empresa_config.logo_b64 }}" height="40" alt="Logo" class="mb-1">
+                    {% elif logo_b64 %}
+                        <img src="{{ logo_b64 }}" height="40" alt="Logo" class="mb-1">
+                    {% else %}
+                        <i class="bi bi-wrench-adjustable-circle fs-2 text-primary"></i>
+                    {% endif %}
+                    <div class="fw-bold text-primary">
+                        {{ empresa_config.nome_exibicao if empresa_config and empresa_config.nome_exibicao else 'Autotec' }}
+                    </div>
+                    <small class="text-muted">Serviços Automotivos LTDA</small>
+                </div>
+
+                <div class="col-md-5 text-center">
+                    <small class="text-muted d-block">
+                        <i class="bi bi-geo-alt"></i>
+                        Rua Narciso Sturlini, 818 Letra A — Centro — Osasco/SP — CEP 06018-095
+                    </small>
+                    <small class="text-muted d-block mt-1">
+                        <i class="bi bi-building"></i>
+                        CNPJ: 05.873.451/0001-57
+                    </small>
+                </div>
+
+                <div class="col-md-4 text-center text-md-end">
+                    <small class="text-muted">Desenvolvido por</small><br>
+                    <a href="https://github.com/vinicamargors" target="_blank" rel="noopener noreferrer"
+                       class="footer-dev-link">
+                        <i class="bi bi-github"></i> vinicamargors
+                    </a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+    window.tratarErroDB = function(mensagem) {
+        const mapaFK = [
+            { detectar: 'ordens_servico_veiculo_id_fkey',           texto: '🚗 Este veículo não pode ser removido pois está vinculado a uma ou mais Ordens de Serviço.' },
+            { detectar: 'ordens_servico_cliente_id_fkey',           texto: '👤 Este cliente não pode ser removido pois está vinculado a uma ou mais Ordens de Serviço.' },
+            { detectar: 'veiculos_cliente_id_fkey',                 texto: '👤 Este cliente não pode ser removido pois possui veículos cadastrados.' },
+            { detectar: 'os_itens_os_id_fkey',                      texto: '📋 Esta Ordem de Serviço não pode ser removida pois possui itens vinculados.' },
+            { detectar: 'os_itens_estoque_id_fkey',                 texto: '📦 Este item de estoque não pode ser removido pois está vinculado a Ordens de Serviço.' },
+            { detectar: 'ordens_servico_mecanico_responsavel_id_fkey', texto: '🔧 Este usuário não pode ser removido pois é responsável por Ordens de Serviço.' },
+        ];
+        for (const fk of mapaFK) {
+            if (mensagem.includes(fk.detectar)) return fk.texto;
+        }
+        if (mensagem.includes('foreign key') || mensagem.includes('violates'))
+            return '⚠️ Este registro não pode ser removido pois está sendo utilizado em outro lugar do sistema.';
+        return mensagem;
+    };
+    </script>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

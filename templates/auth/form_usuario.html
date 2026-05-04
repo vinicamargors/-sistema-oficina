@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if usuario %}Editar{% else %}Novo{% endif %} Usuário - Sistema Oficina{% endblock %}
+
+{% block content %}
+<h2>{% if usuario %}Editar{% else %}Novo{% endif %} Usuário</h2>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            <div class="mb-3">
+                <label for="nome" class="form-label">Nome *</label>
+                <input type="text" class="form-control" id="nome" name="nome" 
+                       value="{{ usuario.nome if usuario else '' }}" required>
+            </div>
+
+            <div class="mb-3">
+                <label for="email" class="form-label">Email *</label>
+                <input type="email" class="form-control" id="email" name="email" 
+                       value="{{ usuario.email if usuario else '' }}" required>
+            </div>
+
+            <div class="mb-3">
+                <label for="cargo" class="form-label">Cargo *</label>
+                <select class="form-select" id="cargo" name="cargo" required>
+                    <option value="">Selecione...</option>
+                    <option value="DONO" {% if usuario and usuario.cargo == 'DONO' %}selected{% endif %}>
+                        Dono (acesso total)
+                    </option>
+                    <option value="MECANICO" {% if usuario and usuario.cargo == 'MECANICO' %}selected{% endif %}>
+                        Mecânico (OS, estoque)
+                    </option>
+                    <option value="RECEPCAO" {% if usuario and usuario.cargo == 'RECEPCAO' %}selected{% endif %}>
+                        Recepção (clientes, veículos, OS)
+                    </option>
+                </select>
+            </div>
+
+            <hr>
+
+            {% if usuario %}
+                <div class="mb-3">
+                    <label for="nova_senha" class="form-label">Nova Senha</label>
+                    <input type="password" class="form-control" id="nova_senha" name="nova_senha" 
+                           placeholder="Deixe em branco para não alterar">
+                    <small class="text-muted">Mínimo 6 caracteres</small>
+                </div>
+            {% else %}
+                <div class="mb-3">
+                    <label for="senha" class="form-label">Senha *</label>
+                    <input type="password" class="form-control" id="senha" name="senha" 
+                           minlength="6" required>
+                    <small class="text-muted">Mínimo 6 caracteres</small>
+                </div>
+            {% endif %}
+
+            <hr>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-check-circle"></i> Salvar
+                </button>
+                <a href="{{ url_for('auth.listar_usuarios') }}" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

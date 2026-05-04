@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+
+{% block title %}Veículos - Sistema Oficina{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-car-front"></i> Veículos</h2>
+    <a href="{{ url_for('veiculos.novo') }}" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Novo Veículo
+    </a>
+</div>
+
+<!-- Barra de Pesquisa -->
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="input-group">
+            <span class="input-group-text">
+                <i class="bi bi-search"></i>
+            </span>
+            <input type="text" class="form-control" id="campoBusca" 
+                   placeholder="Buscar por placa, modelo ou nome do dono...">
+            <button class="btn btn-outline-secondary" type="button" onclick="limparBusca()">
+                <i class="bi bi-x-circle"></i> Limpar
+            </button>
+        </div>
+        <small class="text-muted">
+            <i class="bi bi-info-circle"></i> Digite qualquer parte da placa, modelo ou nome do cliente
+        </small>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover" id="tabelaVeiculos">
+                <thead>
+                    <tr>
+                        <th>Placa</th>
+                        <th>Modelo</th>
+                        <th>Marca</th>
+                        <th>Cor</th>
+                        <th>KM Atual</th>
+                        <th>Cliente</th>
+                        <th width="150">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for veiculo in veiculos %}
+                    <tr class="linha-veiculo" 
+                        data-placa="{{ veiculo.placa }}"
+                        data-modelo="{{ veiculo.modelo }}"
+                        data-cliente="{{ veiculo.clientes.nome if veiculo.clientes else '' }}">
+                        <td data-label="Placa"><strong>{{ veiculo.placa }}</strong></td>
+                        <td data-label="Modelo">{{ veiculo.modelo }}</td>
+                        <td data-label="Marca">{{ veiculo.marca or '-' }}</td>
+                        <td data-label="Cor">{{ veiculo.cor or '-' }}</td>
+                        <td data-label="KM Atual">{{ '{:,}'.format(veiculo.km_atual).replace(',', '.') if veiculo.km_atual else '-' }} km</td>
+                        <td data-label="Cliente">
+                            {% if veiculo.clientes %}
+                                <i class="bi bi-person-circle"></i> {{ veiculo.clientes.nome }}
+                                <br><small class="text-muted"><i class="bi bi-telephone"></i> {{ veiculo.clientes.telefone }}</small>
+                            {% else %}
+                                <span class="text-muted">Sem cliente</span>
+                            {% endif %}
+                        </td>
+                        <td data-label="Ações">
+                            <a href="{{ url_for('veiculos.editar', veiculo_id=veiculo.id) }}" 
+                               class="btn btn-sm btn-warning" title="Editar">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <form method="POST" action="{{ url_for('veiculos.deletar', veiculo_id=veiculo.id) }}" 
+                                  style="display:inline;" onsubmit="return confirm('Tem certeza que deseja deletar este veículo?')">
+                                <button type="submit" class="btn btn-sm btn-danger" title="Deletar">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr id="mensagemVazio">
+                        <td colspan="7" class="text-center">
+                            Nenhum veículo cadastrado
+                            <br><br>
+                            <a href="{{ url_for('veiculos.novo') }}" class="btn btn-primary">
+                                <i class="bi bi-plus-circle"></i> Cadastrar Primeiro Veículo
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            
+            <!-- Mensagem quando não encontrar resultados na busca -->
+            <div id="nenhumResultado" class="text-center p-4" style="display: none;">
+                <i class="bi bi-search text-muted" style="font-size: 3rem;"></i>
+                <p class="text-muted">Nenhum veículo encontrado com esse critério</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Função de busca em tempo real
+document.getElementById('campoBusca').addEventListener('keyup', function() {
+    const termo = this.value.toLowerCase().trim();
+    const linhas = document.querySelectorAll('.linha-veiculo');
+    let encontrouAlgum = false;
+    
+    linhas.forEach(linha => {
+        const placa = linha.getAttribute('data-placa').toLowerCase();
+        const modelo = linha.getAttribute('data-modelo').toLowerCase();
+        const cliente = linha.getAttribute('data-cliente').toLowerCase();
+        
+        // Verifica se o termo está em algum dos campos
+        if (placa.includes(termo) || modelo.includes(termo) || cliente.includes(termo)) {
+            linha.style.display = '';
+            encontrouAlgum = true;
+        } else {
+            linha.style.display = 'none';
+        }
+    });
+    
+    // Mostra mensagem se não encontrou nada
+    document.getElementById('nenhumResultado').style.display = encontrouAlgum ? 'none' : 'block';
+});
+
+function limparBusca() {
+    document.getElementById('campoBusca').value = '';
+    document.querySelectorAll('.linha-veiculo').forEach(linha => {
+        linha.style.display = '';
+    });
+    document.getElementById('nenhumResultado').style.display = 'none';
+}
+</script>
+{% endblock %}

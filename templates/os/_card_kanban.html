@@ -1,0 +1,56 @@
+<div class="card mb-2 kanban-card" data-os-id="{{ ordem.id }}">
+    <div class="card-body p-2">
+        <div class="d-flex justify-content-between align-items-start mb-1">
+            <small class="text-muted">#{{ ordem.id[:8] }}</small>
+            <small class="text-muted">{{ ordem.data_abertura[:10] if ordem.data_abertura else '-' }}</small>
+        </div>
+        
+        {% if ordem.clientes %}
+            <strong class="d-block">{{ ordem.clientes.nome }}</strong>
+        {% endif %}
+        
+        {% if ordem.veiculos %}
+            <small class="text-muted d-block">
+                <i class="bi bi-car-front"></i> {{ ordem.veiculos.placa }} - {{ ordem.veiculos.modelo }}
+            </small>
+        {% endif %}
+        
+        {% if ordem.km_atual %}
+            <small class="text-muted d-block">
+                <i class="bi bi-speedometer2"></i> {{ '{:,}'.format(ordem.km_atual).replace(',', '.') }} km
+            </small>
+        {% endif %}
+        
+        {% if ordem.descricao_problema %}
+            <small class="text-muted d-block mt-1" style="font-size: 0.75rem;">
+                {{ ordem.descricao_problema[:60] }}{% if ordem.descricao_problema|length > 60 %}...{% endif %}
+            </small>
+        {% endif %}
+        
+        <hr class="my-2">
+        
+        <!-- VALOR E BOTÕES (TUDO DENTRO DO CARD) -->
+        <div class="d-flex justify-content-between align-items-center">
+            {% if session.user_cargo == 'DONO' %}
+                <strong class="text-success">R$ {{ '{:,.2f}'.format(ordem.total_geral or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}</strong>
+            {% else %}
+                <span class="badge bg-secondary">OS #{{ ordem.id[:8] }}</span>
+            {% endif %}
+            
+            <div class="d-flex gap-1">
+                <a href="{{ url_for('os.imprimir', os_id=ordem.id) }}" 
+                   class="btn btn-sm btn-outline-info" 
+                   target="_blank" 
+                   title="Imprimir"
+                   onclick="event.stopPropagation();">
+                    <i class="bi bi-printer"></i>
+                </a>
+                <a href="{{ url_for('os.editar', os_id=ordem.id) }}" 
+                   class="btn btn-sm btn-outline-primary"
+                   onclick="event.stopPropagation();">
+                    <i class="bi bi-pencil"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

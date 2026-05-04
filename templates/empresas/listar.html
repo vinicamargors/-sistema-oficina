@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+{% block title %}Empresas{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h4 class="fw-bold mb-0">
+                <i class="bi bi-building-fill text-primary me-2"></i>
+                {% if user_cargo == 'master' %}Gerenciar Empresas{% else %}Minha Empresa{% endif %}
+            </h4>
+            <small class="text-muted">
+                {% if user_cargo == 'master' %}Todas as empresas cadastradas no sistema{% else %}Dados da sua empresa{% endif %}
+            </small>
+        </div>
+        {% if user_cargo == 'master' %}
+        <a href="{{ url_for('empresas.nova') }}" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-1"></i> Nova Empresa
+        </a>
+        {% endif %}
+    </div>
+
+    {% if not empresas %}
+    <div class="card shadow-sm">
+        <div class="card-body text-center py-5 text-muted">
+            <i class="bi bi-building fs-1 d-block mb-3 opacity-25"></i>
+            <h6>Nenhuma empresa cadastrada</h6>
+            {% if user_cargo == 'master' %}
+            <a href="{{ url_for('empresas.nova') }}" class="btn btn-primary mt-2">
+                <i class="bi bi-plus-lg me-1"></i> Cadastrar primeira empresa
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <div class="row g-3">
+        {% for emp in empresas %}
+        <div class="col-md-6 col-xl-4">
+            <div class="card shadow-sm h-100 {% if not emp.ativo %}opacity-75 border-danger{% endif %}">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-start justify-content-between mb-3">
+                        <div>
+                            <h6 class="fw-bold mb-0">{{ emp.nome_fantasia }}</h6>
+                            {% if emp.razao_social %}
+                                <small class="text-muted">{{ emp.razao_social }}</small>
+                            {% endif %}
+                        </div>
+                        <span class="badge {% if emp.ativo %}bg-success{% else %}bg-danger{% endif %}">
+                            {{ 'Ativa' if emp.ativo else 'Inativa' }}
+                        </span>
+                    </div>
+
+                    <ul class="list-unstyled small text-muted mb-3">
+                        {% if emp.cnpj %}
+                        <li class="mb-1"><i class="bi bi-building me-2"></i>{{ emp.cnpj }}</li>
+                        {% endif %}
+                        {% if emp.email %}
+                        <li class="mb-1"><i class="bi bi-envelope me-2"></i>{{ emp.email }}</li>
+                        {% endif %}
+                        {% if emp.telefone %}
+                        <li class="mb-1"><i class="bi bi-telephone me-2"></i>{{ emp.telefone }}</li>
+                        {% endif %}
+                        <li class="mb-1">
+                            <i class="bi bi-star me-2"></i>
+                            <span class="badge bg-primary bg-opacity-10 text-primary">
+                                {{ (emp.plano or 'basico') | capitalize }}
+                            </span>
+                        </li>
+                        <li>
+                            <i class="bi bi-calendar me-2"></i>
+                            {{ emp.created_at[:10] if emp.created_at else '—' }}
+                        </li>
+                    </ul>
+
+                    <div class="d-flex gap-2 flex-wrap">
+                        {% if user_cargo == 'master' %}
+                        <a href="{{ url_for('empresas.detalhe', empresa_id=emp.id) }}"
+                           class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-eye"></i> Detalhe
+                        </a>
+                        {% endif %}
+                        <a href="{{ url_for('empresas.editar', empresa_id=emp.id) }}"
+                           class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-pencil"></i> Editar
+                        </a>
+                        {% if user_cargo != 'master' %}
+                        <a href="{{ url_for('empresas.configuracoes') }}"
+                           class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-gear"></i> Configurações
+                        </a>
+                        {% endif %}
+                        {% if user_cargo == 'master' %}
+                        <form method="POST"
+                              action="{{ url_for('empresas.deletar', empresa_id=emp.id) }}"
+                              onsubmit="return confirm('Excluir empresa {{ emp.nome_fantasia }}? Esta ação é irreversível.')">
+                            <button class="btn btn-sm btn-outline-danger">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

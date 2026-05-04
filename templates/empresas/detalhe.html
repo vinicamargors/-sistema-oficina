@@ -1,0 +1,194 @@
+{% extends 'base.html' %}
+{% block title %}Detalhe — {{ empresa.nome_fantasia }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h4 class="fw-bold mb-0">
+                <i class="bi bi-building-fill text-primary me-2"></i>{{ empresa.nome_fantasia }}
+            </h4>
+            <small class="text-muted">{{ empresa.razao_social or '' }}</small>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('empresas.editar', empresa_id=empresa.id) }}"
+               class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-pencil"></i> Editar
+            </a>
+            <a href="{{ url_for('empresas.listar') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left"></i> Voltar
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-4">
+
+        <!-- KPIs -->
+        <div class="col-12">
+            <div class="row g-3">
+                {% set kpis = [
+                    ('bi-people-fill',          'primary',  stats.clientes, 'Clientes'),
+                    ('bi-car-front-fill',        'success',  stats.veiculos, 'Veículos'),
+                    ('bi-file-earmark-text-fill','warning',  stats.ordens,   'Ordens de Serviço'),
+                ] %}
+                {% for icon, color, val, label in kpis %}
+                <div class="col-md-4">
+                    <div class="card shadow-sm border-0">
+                        <div class="card-body d-flex align-items-center gap-3 p-4">
+                            <div class="rounded-3 bg-{{ color }} bg-opacity-10 p-3">
+                                <i class="bi {{ icon }} fs-4 text-{{ color }}"></i>
+                            </div>
+                            <div>
+                                <div class="fs-3 fw-bold">{{ val }}</div>
+                                <div class="text-muted small">{{ label }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Dados + Configurações -->
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-transparent py-3">
+                    <h6 class="mb-0 fw-semibold">
+                        <i class="bi bi-info-circle me-2 text-primary"></i>Dados Cadastrais
+                    </h6>
+                </div>
+                <div class="card-body p-4">
+                    <table class="table table-sm table-borderless mb-0">
+                        <tbody>
+                            <tr><td class="text-muted" style="width:40%">Status</td>
+                                <td><span class="badge {% if empresa.ativo %}bg-success{% else %}bg-danger{% endif %}">
+                                    {{ 'Ativa' if empresa.ativo else 'Inativa' }}
+                                </span></td></tr>
+                            <tr><td class="text-muted">Plano</td>
+                                <td><span class="badge bg-primary bg-opacity-10 text-primary">
+                                    {{ (empresa.plano or 'basico') | capitalize }}
+                                </span></td></tr>
+                            <tr><td class="text-muted">CNPJ</td><td>{{ empresa.cnpj or '—' }}</td></tr>
+                            <tr><td class="text-muted">E-mail</td><td>{{ empresa.email or '—' }}</td></tr>
+                            <tr><td class="text-muted">Telefone</td><td>{{ empresa.telefone or '—' }}</td></tr>
+                            <tr><td class="text-muted">Criada em</td>
+                                <td>{{ empresa.created_at[:10] if empresa.created_at else '—' }}</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Configurações visuais -->
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-transparent py-3">
+                    <h6 class="mb-0 fw-semibold">
+                        <i class="bi bi-palette me-2 text-primary"></i>Configurações Visuais
+                    </h6>
+                </div>
+                <div class="card-body p-4">
+                    {% if config %}
+                    <div class="mb-3">
+                        <div class="text-muted small mb-1">Logo</div>
+                        {% if config.logo_b64 %}
+                            <img src="{{ config.logo_b64 }}" height="50"
+                                 class="border rounded p-1" alt="Logo">
+                        {% else %}
+                            <span class="text-muted">—</span>
+                        {% endif %}
+                    </div>
+                    <div class="d-flex gap-3 mb-3">
+                        <div>
+                            <div class="text-muted small mb-1">Cor Primária</div>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="rounded" style="width:28px;height:28px;
+                                     background:{{ config.cor_primaria or '#1e3a8a' }};
+                                     border:1px solid #dee2e6"></div>
+                                <code class="small">{{ config.cor_primaria or '#1e3a8a' }}</code>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="text-muted small mb-1">Cor Secundária</div>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="rounded" style="width:28px;height:28px;
+                                     background:{{ config.cor_secundaria or '#f97316' }};
+                                     border:1px solid #dee2e6"></div>
+                                <code class="small">{{ config.cor_secundaria or '#f97316' }}</code>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-muted small mb-1">Nome de Exibição</div>
+                    <div>{{ config.nome_exibicao or '—' }}</div>
+                    {% else %}
+                    <div class="text-muted text-center py-3">
+                        <i class="bi bi-gear fs-2 d-block mb-2 opacity-25"></i>
+                        Sem configurações salvas
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Usuários -->
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-transparent py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0 fw-semibold">
+                        <i class="bi bi-people me-2 text-primary"></i>
+                        Usuários <span class="badge bg-secondary ms-1">{{ usuarios | length }}</span>
+                    </h6>
+                </div>
+                <div class="card-body p-0">
+                    {% if usuarios %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>E-mail</th>
+                                    <th>Cargo</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for u in usuarios %}
+                                <tr>
+                                    <td class="fw-medium">{{ u.nome }}</td>
+                                    <td class="text-muted small">{{ u.email }}</td>
+                                    <td>
+                                        {% if u.cargo == 'DONO' %}
+                                            <span class="badge bg-danger">Dono</span>
+                                        {% elif u.cargo == 'MECANICO' %}
+                                            <span class="badge bg-primary">Mecânico</span>
+                                        {% elif u.cargo == 'RECEPCAO' %}
+                                            <span class="badge bg-success">Recepção</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ u.cargo }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge {% if u.ativo %}bg-success{% else %}bg-secondary{% endif %} bg-opacity-10
+                                              {% if u.ativo %}text-success{% else %}text-secondary{% endif %}">
+                                            {{ 'Ativo' if u.ativo else 'Inativo' }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-people fs-2 d-block mb-2 opacity-25"></i>
+                        Nenhum usuário cadastrado
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

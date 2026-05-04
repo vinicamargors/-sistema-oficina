@@ -1,0 +1,274 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if veiculo %}Editar{% else %}Novo{% endif %} Veículo{% endblock %}
+
+{% block content %}
+<h2>{% if veiculo %}Editar{% else %}Novo{% endif %} Veículo</h2>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST" id="formVeiculo" data-no-global>
+            <div class="row">
+                <!-- Placa -->
+                <div class="col-12 mb-3">
+                    <label class="form-label">Placa *</label>
+                    <div class="d-flex align-items-center gap-2">
+                        <input type="text" class="form-control" id="placa" name="placa"
+                            maxlength="7" placeholder="AAA0000 ou ABC1D23" style="text-transform:uppercase"
+                            value="{{ veiculo.placa if veiculo else '' }}">
+                        <span id="badgePlaca" style="display:none;"></span>
+                    </div>
+                    <small class="text-muted">Modelo, marca e cor serão preenchidos automaticamente</small>
+                </div>
+
+                <!-- Modelo -->
+                <div class="col-md-8 mb-3">
+                    <label for="modelo" class="form-label">Modelo *</label>
+                    <input type="text" class="form-control" id="modelo" name="modelo"
+                           value="{{ veiculo.modelo if veiculo else '' }}"
+                           placeholder="Fiat Uno Vivace 1.0" required>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Marca -->
+                <div class="col-md-4 mb-3">
+                    <label for="marca" class="form-label">Marca</label>
+                    <input type="text" class="form-control" id="marca" name="marca"
+                           value="{{ veiculo.marca if veiculo else '' }}"
+                           placeholder="Fiat">
+                </div>
+
+                <!-- Cor -->
+                <div class="col-md-4 mb-3">
+                    <label for="cor" class="form-label">Cor</label>
+                    <input type="text" class="form-control" id="cor" name="cor"
+                           value="{{ veiculo.cor if veiculo else '' }}"
+                           placeholder="Prata">
+                </div>
+
+                <!-- Ano -->
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Ano de Fabricação</label>
+                    <input type="number" class="form-control" name="ano" id="ano"
+                        value="{{ veiculo.ano if veiculo else '' }}"
+                        min="1950" max="2099" placeholder="Ex: 2007">
+                </div>
+
+                <!-- Chassi -->
+                <div class="col-12 mb-3">
+                    <label class="form-label">Chassi</label>
+                    <input type="text" class="form-control" name="chassi" id="chassi"
+                        value="{{ veiculo.chassi if veiculo else '' }}"
+                        maxlength="17" placeholder="Preenchido automaticamente pela consulta de placa"
+                        style="text-transform:uppercase">
+                </div>
+
+                <!-- KM Atual -->
+                <div class="col-md-4 mb-3">
+                    <label for="km_atual" class="form-label">KM Atual</label>
+                    <input type="number" class="form-control" id="km_atual" name="km_atual"
+                           value="{{ veiculo.km_atual if veiculo else '' }}"
+                           placeholder="50000" min="0">
+                </div>
+            </div>
+
+            <!-- Cliente com Autocomplete -->
+            <div class="mb-3 position-relative">
+                <label for="busca_cliente" class="form-label">Cliente (Dono do Veículo) *</label>
+
+                <input type="text"
+                       class="form-control"
+                       id="busca_cliente"
+                       placeholder="Digite o nome ou telefone do cliente..."
+                       autocomplete="off"
+                       {% if veiculo and veiculo.cliente_id %}
+                           value="{% for c in clientes if c.id == veiculo.cliente_id %}{{ c.nome }} - 📞 {{ c.telefone }}{% endfor %}"
+                       {% endif %}>
+
+                <input type="hidden" name="cliente_id" id="cliente_id"
+                       value="{{ veiculo.cliente_id if veiculo else '' }}">
+
+                <div id="sugestoes" class="list-group" style="position: absolute; z-index: 1000; max-height: 300px; overflow-y: auto; display: none; width: 100%;"></div>
+
+                {% if not clientes %}
+                    <small class="text-warning d-block mt-2">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        Nenhum cliente cadastrado.
+                        <a href="{{ url_for('cliente.novo') }}" target="_blank">Cadastrar cliente</a>
+                    </small>
+                {% else %}
+                    <small class="text-muted d-block mt-2">
+                        <i class="bi bi-info-circle"></i> Digite para buscar cliente por nome ou telefone
+                    </small>
+                {% endif %}
+            </div>
+
+            <hr>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-success" id="btnSalvar" {% if not clientes %}disabled{% endif %}>
+                    <i class="bi bi-check-circle"></i> Salvar
+                </button>
+                <a href="{{ url_for('veiculos.listar') }}" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+#sugestoes {
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    border: 1px solid #ddd;
+}
+#sugestoes .list-group-item:hover {
+    background-color: #f8f9fa;
+    cursor: pointer;
+}
+</style>
+{% endblock %}
+
+
+{% block scripts %}
+<script>
+const clientes = [
+    {% for cliente in clientes %}
+    {
+        id: "{{ cliente.id }}",
+        nome: "{{ cliente.nome }}",
+        telefone: "{{ cliente.telefone }}"
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+];
+
+const inputBusca  = document.getElementById('busca_cliente');
+const inputHidden = document.getElementById('cliente_id');
+const divSugestoes = document.getElementById('sugestoes');
+const inputPlaca  = document.getElementById('placa');
+
+// ── Consulta de placa ──────────────────────────────────────
+inputPlaca.addEventListener('input', function() {
+    const placa = this.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    this.value = placa;
+    if (placa.length !== 7) return;
+
+    const badge = document.getElementById('badgePlaca');
+    badge.className = 'badge bg-warning text-dark ms-2';
+    badge.textContent = '🔍 Consultando...';
+    badge.style.display = 'inline';
+
+    fetch(`/veiculos/consultar-placa/${placa}`)
+        .then(r => r.json())
+        .then(dados => {
+            if (dados.erro) {
+                badge.className = 'badge bg-danger ms-2';
+                badge.textContent = '❌ ' + dados.erro;
+                return;
+            }
+            document.getElementById('modelo').value = dados.modelo || '';
+            document.getElementById('marca').value  = dados.marca  || '';
+            document.getElementById('cor').value    = dados.cor    || '';
+            document.getElementById('chassi').value = dados.chassi || '';
+            document.getElementById('ano').value    = dados.ano    || '';
+
+            badge.className = 'badge bg-success ms-2';
+            badge.textContent = '✅ Veículo encontrado!';
+        })
+        .catch(() => {
+            badge.className = 'badge bg-danger ms-2';
+            badge.textContent = '❌ Erro na consulta';
+        });
+});
+
+// ── Autocomplete de cliente ────────────────────────────────
+inputBusca.addEventListener('input', function() {
+    const termo = this.value.toLowerCase().trim();
+    inputHidden.value = '';
+
+    if (termo.length < 2) {
+        divSugestoes.style.display = 'none';
+        return;
+    }
+
+    const resultados = clientes.filter(c =>
+        c.nome.toLowerCase().includes(termo) ||
+        c.telefone.includes(termo)
+    );
+
+    if (resultados.length === 0) {
+        divSugestoes.innerHTML = '<div class="list-group-item text-muted">Nenhum cliente encontrado</div>';
+        divSugestoes.style.display = 'block';
+        return;
+    }
+
+    divSugestoes.innerHTML = '';
+    resultados.forEach(cliente => {
+        const item = document.createElement('a');
+        item.href = '#';
+        item.className = 'list-group-item list-group-item-action';
+        item.innerHTML = `
+            <div><strong>${cliente.nome}</strong></div>
+            <small class="text-muted"><i class="bi bi-telephone"></i> ${cliente.telefone}</small>
+        `;
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            inputBusca.value = `${cliente.nome} - 📞 ${cliente.telefone}`;
+            inputHidden.value = cliente.id;
+            divSugestoes.style.display = 'none';
+        });
+        divSugestoes.appendChild(item);
+    });
+
+    divSugestoes.style.display = 'block';
+});
+
+document.addEventListener('click', function(e) {
+    if (e.target !== inputBusca) divSugestoes.style.display = 'none';
+});
+
+// ── Submit com spinner ─────────────────────────────────────
+document.getElementById('formVeiculo').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!inputHidden.value) {
+        alert('Por favor, selecione um cliente da lista de sugestões');
+        inputBusca.focus();
+        return;
+    }
+
+    const btn = document.getElementById('btnSalvar');
+    const textoOriginal = btn.innerHTML;
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Salvando...';
+
+    try {
+        const resp = await fetch(this.action, {
+            method: 'POST',
+            body: new FormData(this)
+        });
+
+        if (resp.redirected) {
+            window.location.href = resp.url;
+            return;
+        }
+
+        if (resp.ok) {
+            window.location.href = "{{ url_for('veiculos.listar') }}";
+            return;
+        }
+
+        const data = await resp.json().catch(() => ({}));
+        throw new Error(data.erro || 'Erro desconhecido');
+
+    } catch (err) {
+        alert('Erro: ' + err.message);
+        btn.disabled = false;
+        btn.innerHTML = textoOriginal;
+    }
+});
+</script>
+{% endblock %}

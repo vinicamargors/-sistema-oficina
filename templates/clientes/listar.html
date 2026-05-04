@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+
+{% block title %}Clientes - Sistema Oficina{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-people"></i> Clientes</h2>
+    <a href="{{ url_for('clientes.novo') }}" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Novo Cliente
+    </a>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="text" class="form-control" id="campoBusca"
+                   placeholder="Buscar por nome, telefone ou CPF/CNPJ...">
+            <button class="btn btn-outline-secondary" type="button" onclick="limparBusca()">
+                <i class="bi bi-x-circle"></i> Limpar
+            </button>
+        </div>
+        <small class="text-muted">
+            <i class="bi bi-info-circle"></i> Digite qualquer parte do nome, telefone ou CPF/CNPJ
+        </small>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Telefone</th>
+                        <th>CPF/CNPJ</th>
+                        <th width="150">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cliente in clientes %}
+                    <tr class="linha-cliente"
+                        data-nome="{{ cliente.nome }}"
+                        data-telefone="{{ cliente.telefone }}"
+                        data-cpf="{{ cliente.cpf_cnpj or '' }}">
+                        <td data-label="Nome"><strong>{{ cliente.nome }}</strong></td>
+                        <td data-label="Telefone">
+                            <i class="bi bi-telephone"></i> {{ cliente.telefone }}
+                        </td>
+                        <td data-label="CPF/CNPJ">{{ cliente.cpf_cnpj or '-' }}</td>
+                        <td data-label="Ações">
+                            <a href="{{ url_for('clientes.editar', cliente_id=cliente.id) }}"
+                               class="btn btn-sm btn-warning" title="Editar">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <form method="POST" action="{{ url_for('clientes.deletar', cliente_id=cliente.id) }}"
+                                  style="display:inline;" onsubmit="return confirm('Tem certeza que deseja deletar este cliente?')">
+                                <button type="submit" class="btn btn-sm btn-danger" title="Deletar">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr id="mensagemVazio">
+                        <td colspan="4" class="text-center py-4">
+                            <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
+                            <p class="text-muted mt-2">Nenhum cliente cadastrado</p>
+                            <a href="{{ url_for('clientes.novo') }}" class="btn btn-primary">
+                                <i class="bi bi-plus-circle"></i> Cadastrar Primeiro Cliente
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <div id="nenhumResultado" class="text-center p-4" style="display:none;">
+                <i class="bi bi-search text-muted" style="font-size: 3rem;"></i>
+                <p class="text-muted">Nenhum cliente encontrado com esse critério</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('campoBusca').addEventListener('keyup', function() {
+    const termo = this.value.toLowerCase().trim();
+    const linhas = document.querySelectorAll('.linha-cliente');
+    let achou = false;
+
+    linhas.forEach(linha => {
+        const bate =
+            linha.dataset.nome.toLowerCase().includes(termo) ||
+            linha.dataset.telefone.includes(termo) ||
+            linha.dataset.cpf.toLowerCase().includes(termo);
+
+        linha.style.display = bate ? '' : 'none';
+        if (bate) achou = true;
+    });
+
+    document.getElementById('nenhumResultado').style.display = achou ? 'none' : 'block';
+});
+
+function limparBusca() {
+    document.getElementById('campoBusca').value = '';
+    document.querySelectorAll('.linha-cliente').forEach(l => l.style.display = '');
+    document.getElementById('nenhumResultado').style.display = 'none';
+}
+</script>
+
+{% endblock %}  

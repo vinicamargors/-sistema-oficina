@@ -1,0 +1,308 @@
+<!-- templates/empresas/configuracoes.html -->
+{% extends 'base.html' %}
+
+{% block title %}Configurações da Empresa{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+
+    <!-- Cabeçalho -->
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h4 class="fw-bold mb-0">
+                <i class="bi bi-gear-fill text-primary me-2"></i>Configurações da Empresa
+            </h4>
+            <small class="text-muted">Personalize as informações e aparência do sistema</small>
+        </div>
+        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i> Voltar
+        </a>
+    </div>
+
+    <form method="POST" action="{{ url_for('empresas.configuracoes') }}">
+
+        <div class="row g-4">
+
+            <!-- ── COLUNA ESQUERDA ──────────────────────── -->
+            <div class="col-lg-7">
+
+                <!-- Dados da Empresa -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-transparent border-bottom py-3">
+                        <h6 class="mb-0 fw-semibold">
+                            <i class="bi bi-building me-2 text-primary"></i>Dados da Empresa
+                        </h6>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label fw-medium">Nome de Exibição
+                                    <span class="text-muted fw-normal">(aparece no topo e no rodapé)</span>
+                                </label>
+                                <input type="text" name="nome_exibicao" class="form-control"
+                                       value="{{ config.nome_exibicao or empresa.nome_fantasia or '' }}"
+                                       placeholder="Ex: Oficina do João">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium">Razão Social</label>
+                                <input type="text" class="form-control" disabled
+                                       value="{{ empresa.razao_social or '—' }}">
+                                <div class="form-text">Altere em "Editar Empresa"</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium">CNPJ</label>
+                                <input type="text" class="form-control" disabled
+                                       value="{{ empresa.cnpj or '—' }}">
+                                <div class="form-text">Altere em "Editar Empresa"</div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-medium">Endereço</label>
+                                <input type="text" name="endereco" class="form-control"
+                                    value="{{ empresa.endereco or '' }}"
+                                    placeholder="Ex: Rua das Flores, 123 — Centro — Cidade/UF — CEP 00000-000">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium">Telefone</label>
+                                <input type="text" class="form-control"
+                                       value="{{ empresa.telefone or '—' }}">
+                                <div class="form-text">Altere em "Editar Empresa"</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium">Plano</label>
+                                <input type="text" class="form-control" disabled
+                                       value="{{ (empresa.plano or 'basico') | capitalize }}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cores do Sistema -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-transparent border-bottom py-3">
+                        <h6 class="mb-0 fw-semibold">
+                            <i class="bi bi-palette me-2 text-primary"></i>Cores do Sistema
+                        </h6>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="row g-4">
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium">Cor Primária</label>
+                                <div class="d-flex align-items-center gap-3">
+                                    <input type="color" name="cor_primaria" id="corPrimaria"
+                                           class="form-control form-control-color"
+                                           value="{{ config.cor_primaria or '#1e3a8a' }}"
+                                           style="width: 56px; height: 40px; cursor: pointer;">
+                                    <input type="text" id="corPrimariaHex" class="form-control font-monospace"
+                                           value="{{ config.cor_primaria or '#1e3a8a' }}"
+                                           maxlength="7" placeholder="#1e3a8a"
+                                           oninput="sincronizarCor(this, 'corPrimaria')">
+                                </div>
+                                <div class="form-text">Navbar, botões principais, links</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium">Cor Secundária</label>
+                                <div class="d-flex align-items-center gap-3">
+                                    <input type="color" name="cor_secundaria" id="corSecundaria"
+                                           class="form-control form-control-color"
+                                           value="{{ config.cor_secundaria or '#f97316' }}"
+                                           style="width: 56px; height: 40px; cursor: pointer;">
+                                    <input type="text" id="corSecundariaHex" class="form-control font-monospace"
+                                           value="{{ config.cor_secundaria or '#f97316' }}"
+                                           maxlength="7" placeholder="#f97316"
+                                           oninput="sincronizarCor(this, 'corSecundaria')">
+                                </div>
+                                <div class="form-text">Destaques, badges, acentos</div>
+                            </div>
+                        </div>
+
+                        <!-- Preview de cores -->
+                        <div class="mt-4">
+                            <label class="form-label fw-medium text-muted">Preview</label>
+                            <div class="d-flex gap-2 flex-wrap" id="previewCores">
+                                <span id="prevPrimaria"
+                                      class="badge fs-6 px-3 py-2"
+                                      style="background:{{ config.cor_primaria or '#1e3a8a' }}">
+                                    Primária
+                                </span>
+                                <span id="prevSecundaria"
+                                      class="badge fs-6 px-3 py-2"
+                                      style="background:{{ config.cor_secundaria or '#f97316' }}">
+                                    Secundária
+                                </span>
+                                <button type="button" id="prevBtn"
+                                        class="btn btn-sm px-3"
+                                        style="background:{{ config.cor_primaria or '#1e3a8a' }};color:#fff">
+                                    Botão Exemplo
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ── COLUNA DIREITA ───────────────────────── -->
+            <div class="col-lg-5">
+
+                <!-- Logo -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-transparent border-bottom py-3">
+                        <h6 class="mb-0 fw-semibold">
+                            <i class="bi bi-image me-2 text-primary"></i>Logo da Empresa
+                        </h6>
+                    </div>
+                    <div class="card-body p-4">
+
+                        <!-- Preview atual -->
+                        <div class="text-center mb-3">
+                            <div id="logoPreviewWrap"
+                                 class="d-inline-flex align-items-center justify-content-center rounded-3 border bg-light"
+                                 style="width:160px; height:120px; overflow:hidden;">
+                                {% if config.logo_b64 %}
+                                    <img id="logoPreview" src="{{ config.logo_b64 }}"
+                                         style="max-width:150px; max-height:110px; object-fit:contain;"
+                                         alt="Logo atual">
+                                {% else %}
+                                    <div id="logoPlaceholder" class="text-center text-muted">
+                                        <i class="bi bi-image fs-2 d-block mb-1"></i>
+                                        <small>Sem logo</small>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Upload -->
+                        <label class="form-label fw-medium">Carregar nova logo</label>
+                        <input type="file" id="logoFile" class="form-control mb-2"
+                               accept="image/png,image/jpeg,image/svg+xml,image/webp">
+                        <div class="form-text mb-3">PNG, JPG ou SVG · Recomendado: fundo transparente · Max 500 KB</div>
+
+                        <!-- Campo hidden que vai pro servidor -->
+                        <input type="hidden" name="logo_b64" id="logoB64Input"
+                               value="{{ config.logo_b64 or '' }}">
+
+                        {% if config.logo_b64 %}
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox"
+                                   id="removerLogo" name="remover_logo">
+                            <label class="form-check-label text-danger" for="removerLogo">
+                                Remover logo atual
+                            </label>
+                        </div>
+                        {% endif %}
+
+                        <div id="logoErro" class="text-danger small d-none"></div>
+                    </div>
+                </div>
+
+                <!-- Resumo do Plano -->
+                <div class="card shadow-sm mb-4 border-0"
+                     style="background: linear-gradient(135deg, #1e3a8a11, #f9731611)">
+                    <div class="card-body p-4">
+                        <h6 class="fw-semibold mb-3">
+                            <i class="bi bi-star-fill text-warning me-2"></i>Seu Plano
+                        </h6>
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="badge bg-primary fs-6 text-uppercase">
+                                {{ empresa.plano or 'Básico' }}
+                            </span>
+                        </div>
+                        <ul class="list-unstyled small text-muted mb-0 mt-3">
+                            <li class="mb-1"><i class="bi bi-check2 text-success me-1"></i>Ordens de Serviço ilimitadas</li>
+                            <li class="mb-1"><i class="bi bi-check2 text-success me-1"></i>Clientes e veículos ilimitados</li>
+                            <li class="mb-1"><i class="bi bi-check2 text-success me-1"></i>Controle de estoque</li>
+                            <li class="mb-1"><i class="bi bi-check2 text-success me-1"></i>Relatórios financeiros</li>
+                        </ul>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ── BOTÕES ───────────────────────────────────── -->
+        <div class="d-flex justify-content-end gap-2 mt-2 pb-4">
+            <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-x-lg"></i> Cancelar
+            </a>
+            <button type="submit" class="btn btn-primary px-4">
+                <i class="bi bi-floppy-fill me-1"></i> Salvar Configurações
+            </button>
+        </div>
+
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ── Sincronizar color picker <-> input hex ────────────────
+function sincronizarCor(hexInput, pickerId) {
+    const val = hexInput.value.trim();
+    if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+        document.getElementById(pickerId).value = val;
+        atualizarPreview();
+    }
+}
+
+document.getElementById('corPrimaria').addEventListener('input', function () {
+    document.getElementById('corPrimariaHex').value = this.value;
+    atualizarPreview();
+});
+document.getElementById('corSecundaria').addEventListener('input', function () {
+    document.getElementById('corSecundariaHex').value = this.value;
+    atualizarPreview();
+});
+
+function atualizarPreview() {
+    const p = document.getElementById('corPrimaria').value;
+    const s = document.getElementById('corSecundaria').value;
+    document.getElementById('prevPrimaria').style.background   = p;
+    document.getElementById('prevSecundaria').style.background = s;
+    document.getElementById('prevBtn').style.background        = p;
+}
+
+// ── Upload de logo → base64 ───────────────────────────────
+document.getElementById('logoFile').addEventListener('change', function () {
+    const file   = this.files[0];
+    const erroEl = document.getElementById('logoErro');
+    erroEl.classList.add('d-none');
+
+    if (!file) return;
+
+    if (file.size > 512 * 1024) {
+        erroEl.textContent = '⚠️ Arquivo muito grande. Máximo permitido: 500 KB.';
+        erroEl.classList.remove('d-none');
+        this.value = '';
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        const b64 = e.target.result;
+        document.getElementById('logoB64Input').value = b64;
+
+        // Atualiza preview
+        const wrap = document.getElementById('logoPreviewWrap');
+        wrap.innerHTML = `<img src="${b64}"
+                               style="max-width:150px;max-height:110px;object-fit:contain;"
+                               alt="Nova logo">`;
+    };
+    reader.readAsDataURL(file);
+});
+
+// ── Remover logo ──────────────────────────────────────────
+const removerCheck = document.getElementById('removerLogo');
+if (removerCheck) {
+    removerCheck.addEventListener('change', function () {
+        if (this.checked) {
+            document.getElementById('logoB64Input').value = '';
+            document.getElementById('logoPreviewWrap').innerHTML =
+                `<div class="text-center text-muted">
+                    <i class="bi bi-image fs-2 d-block mb-1"></i>
+                    <small>Sem logo</small>
+                 </div>`;
+        }
+    });
+}
+</script>
+{% endblock %}

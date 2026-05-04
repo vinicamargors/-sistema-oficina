@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Editar Empresa' if empresa else 'Nova Empresa' }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h4 class="fw-bold mb-0">
+                <i class="bi bi-building-fill-add text-primary me-2"></i>
+                {{ 'Editar Empresa' if empresa else 'Nova Empresa' }}
+            </h4>
+            <small class="text-muted">
+                {{ 'Atualize os dados da empresa' if empresa else 'Preencha os dados para cadastrar uma nova empresa e seu usuário dono' }}
+            </small>
+        </div>
+        <a href="{{ url_for('empresas.listar') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left"></i> Voltar
+        </a>
+    </div>
+
+    <form method="POST">
+        <div class="row g-4">
+
+            <!-- Dados da Empresa -->
+            <div class="col-lg-7">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-transparent py-3">
+                        <h6 class="mb-0 fw-semibold">
+                            <i class="bi bi-building me-2 text-primary"></i>Dados da Empresa
+                        </h6>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label fw-medium">Nome Fantasia <span class="text-danger">*</span></label>
+                                <input type="text" name="nome_fantasia" class="form-control" required
+                                       value="{{ empresa.nome_fantasia if empresa else '' }}"
+                                       placeholder="Ex: Oficina do João">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-medium">Razão Social</label>
+                                <input type="text" name="razao_social" class="form-control"
+                                       value="{{ empresa.razao_social if empresa else '' }}"
+                                       placeholder="Ex: João Silva Serviços LTDA">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium">CNPJ</label>
+                                <input type="text" name="cnpj" class="form-control"
+                                       value="{{ empresa.cnpj if empresa else '' }}"
+                                       placeholder="00.000.000/0000-00">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium">Telefone</label>
+                                <input type="text" name="telefone" class="form-control"
+                                       value="{{ empresa.telefone if empresa else '' }}"
+                                       placeholder="(11) 99999-9999">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium">E-mail da Empresa</label>
+                                <input type="email" name="email" class="form-control"
+                                       value="{{ empresa.email if empresa else '' }}"
+                                       placeholder="contato@empresa.com.br">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-medium">Plano</label>
+                                <select name="plano" class="form-select"
+                                        {% if user_cargo != 'master' %}disabled{% endif %}>
+                                    {% for p in planos %}
+                                    <option value="{{ p }}"
+                                        {{ 'selected' if empresa and empresa.plano == p else '' }}>
+                                        {{ p | capitalize }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            {% if user_cargo == 'master' and empresa %}
+                            <div class="col-12">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox"
+                                           name="ativo" id="ativo"
+                                           {{ 'checked' if empresa.ativo }}>
+                                    <label class="form-check-label" for="ativo">Empresa ativa</label>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Usuário Dono (só na criação) -->
+            {% if not empresa %}
+            <div class="col-lg-5">
+                <div class="card shadow-sm mb-4 border-primary border-opacity-25">
+                    <div class="card-header bg-transparent py-3">
+                        <h6 class="mb-0 fw-semibold">
+                            <i class="bi bi-person-badge me-2 text-primary"></i>Usuário Dono
+                        </h6>
+                        <small class="text-muted">Criado automaticamente com a empresa</small>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label fw-medium">Nome do Dono <span class="text-danger">*</span></label>
+                                <input type="text" name="nome_dono" class="form-control" required
+                                       placeholder="Nome completo">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-medium">E-mail de Acesso <span class="text-danger">*</span></label>
+                                <input type="email" name="email_dono" class="form-control" required
+                                       placeholder="dono@empresa.com.br">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-medium">Senha <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <input type="password" name="senha_dono" id="senhaDono"
+                                           class="form-control" required minlength="6"
+                                           placeholder="Mínimo 6 caracteres">
+                                    <button class="btn btn-outline-secondary" type="button"
+                                            onclick="toggleSenha()">
+                                        <i class="bi bi-eye" id="olhoSenha"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Aviso -->
+                <div class="alert alert-info border-0 d-flex gap-2">
+                    <i class="bi bi-info-circle-fill flex-shrink-0 mt-1"></i>
+                    <small>
+                        O usuário dono terá acesso completo à empresa, podendo gerenciar
+                        usuários, OS, clientes e configurações.
+                    </small>
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+
+        <div class="d-flex justify-content-end gap-2 mt-2 pb-4">
+            <a href="{{ url_for('empresas.listar') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-x-lg"></i> Cancelar
+            </a>
+            <button type="submit" class="btn btn-primary px-4">
+                <i class="bi bi-floppy-fill me-1"></i>
+                {{ 'Salvar Alterações' if empresa else 'Criar Empresa' }}
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleSenha() {
+    const input = document.getElementById('senhaDono');
+    const olho  = document.getElementById('olhoSenha');
+    if (input.type === 'password') {
+        input.type = 'text';
+        olho.className = 'bi bi-eye-slash';
+    } else {
+        input.type = 'password';
+        olho.className = 'bi bi-eye';
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,691 @@
+{% extends 'base.html' %}
+
+{% block title %}Editar OS - Sistema Oficina{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-file-earmark-text"></i> Ordem de Serviço #{{ ordem.id[:8] }}</h2>
+    <div class="d-flex gap-3 mb-3 flex-wrap">
+        <span class="text-muted">
+            <i class="bi bi-calendar-plus"></i>
+            <strong>Abertura:</strong>
+            {{ ordem.data_abertura[:10].split('-')|reverse|join('/') if ordem.data_abertura else 'Não informada' }}
+        </span>
+
+        {% if ordem.data_fechamento %}
+        <span class="text-success">
+            <i class="bi bi-calendar-check"></i>
+            <strong>Encerramento:</strong>
+            {{ ordem.data_fechamento[:10].split('-')|reverse|join('/') }}
+        </span>
+        {% else %}
+        <span class="text-muted">
+            <i class="bi bi-calendar-x"></i>
+            <strong>Encerramento:</strong> Em aberto
+        </span>
+        {% endif %}
+    </div>
+    <div>
+        <a href="{{ url_for('os.imprimir', os_id=ordem.id) }}" class="btn btn-info" target="_blank">
+            <i class="bi bi-printer"></i> Imprimir OS
+        </a>
+
+        <a href="{{ url_for('os.listar') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Voltar
+        </a>
+
+        <button type="button" class="btn btn-danger"
+                data-bs-toggle="modal"
+                data-bs-target="#modalDeletarOS">
+            <i class="bi bi-trash"></i> Deletar OS
+        </button>
+    </div>
+</div>
+
+<!-- Informações do Cliente e Veículo -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <strong><i class="bi bi-person-circle"></i> Cliente</strong>
+            </div>
+            <div class="card-body">
+                {% if ordem.clientes %}
+                    <p class="mb-1"><strong>Nome:</strong> {{ ordem.clientes.nome }}</p>
+                    <p class="mb-1"><strong>Telefone:</strong> {{ ordem.clientes.telefone }}</p>
+                    <p class="mb-0"><strong>CPF/CNPJ:</strong> {{ ordem.clientes.cpf_cnpj or '-' }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <strong><i class="bi bi-car-front"></i> Veículo</strong>
+            </div>
+            <div class="card-body">
+                {% if ordem.veiculos %}
+                    <p class="mb-1"><strong>Placa:</strong> {{ ordem.veiculos.placa }}</p>
+                    <p class="mb-1"><strong>Modelo:</strong> {{ ordem.veiculos.modelo }} {{ ordem.veiculos.marca }}</p>
+                    <p class="mb-1"><strong>Cor:</strong> {{ ordem.veiculos.cor or '-' }}</p>
+                    <p class="mb-1"><strong>Ano:</strong> {{ ordem.veiculos.ano or '-' }}</p>
+                    <p class="mb-1"><strong>Chassi:</strong> {{ ordem.veiculos.chassi or '-' }}</p>
+                    <p class="mb-0"><strong>KM:</strong> {{ '{:,}'.format(ordem.veiculos.km_atual).replace(',', '.') if ordem.veiculos.km_atual else '-' }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>  
+</div>
+
+<!-- Descrição e KM -->
+<div class="card mb-4">
+    <div class="card-header">
+        <strong><i class="bi bi-clipboard-check"></i> Informações do Serviço</strong>
+    </div>
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('os.atualizar_info', os_id=ordem.id) }}">
+            <div class="mb-3">
+                <label for="descricao_problema" class="form-label">Descrição do Problema/Serviço</label>
+                <textarea class="form-control"
+                          id="descricao_problema"
+                          name="descricao_problema"
+                          rows="3"
+                          placeholder="Descreva o problema relatado ou serviço a ser realizado...">{{ ordem.descricao_problema or '' }}</textarea>
+            </div>
+
+            <div class="row">
+                <div class="col-md-8">
+                    <label for="km_atual" class="form-label">KM Atual</label>
+                    <input type="number"
+                           class="form-control"
+                           id="km_atual"
+                           name="km_atual"
+                           value="{{ ordem.km_atual or '' }}"
+                           min="0">
+                    <small class="text-muted">
+                        <i class="bi bi-info-circle"></i>
+                        KM cadastrado no veículo: {{ '{:,}'.format(ordem.veiculos.km_atual).replace(',', '.') if ordem.veiculos and ordem.veiculos.km_atual else 'Não informado' }} km
+                        {% if ordem.km_atual and ordem.veiculos.km_atual and ordem.km_atual > ordem.veiculos.km_atual %}
+                            <span class="text-success"><i class="bi bi-check-circle"></i> Veículo será atualizado ao salvar</span>
+                        {% endif %}
+                    </small>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-check-circle"></i> Salvar Informações
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Status e Pagamento -->
+<div class="card mb-4">
+    <div class="card-header">
+        <strong><i class="bi bi-gear"></i> Status da OS</strong>
+    </div>
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('os.atualizar_detalhes', os_id=ordem.id) }}">
+            <div class="row">
+                <div class="col-md-4">
+                    <label class="form-label">Status</label>
+                    <select class="form-select" name="status">
+                        <option value="ORCAMENTO" {% if ordem.status == 'ORCAMENTO' %}selected{% endif %}>📋 Orçamento</option>
+                        <option value="AGUARDANDO_PECA" {% if ordem.status == 'AGUARDANDO_PECA' %}selected{% endif %}>⏳ Aguardando Peça</option>
+                        <option value="EXECUCAO" {% if ordem.status == 'EXECUCAO' %}selected{% endif %}>🔧 Em Execução</option>
+                        <option value="FINALIZADO" {% if ordem.status == 'FINALIZADO' %}selected{% endif %}>✅ Finalizado</option>
+                        <option value="PAGO" {% if ordem.status == 'PAGO' %}selected{% endif %}>💰 Pago</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Forma de Pagamento</label>
+                    <select class="form-select" name="forma_pagamento">
+                        <option value="">Não definido</option>
+                        <option value="Dinheiro" {% if ordem.forma_pagamento == 'Dinheiro' %}selected{% endif %}>💵 Dinheiro</option>
+                        <option value="PIX" {% if ordem.forma_pagamento == 'PIX' %}selected{% endif %}>📱 PIX</option>
+                        <option value="Cartão Débito" {% if ordem.forma_pagamento == 'Cartão Débito' %}selected{% endif %}>💳 Cartão Débito</option>
+                        <option value="Cartão Crédito" {% if ordem.forma_pagamento == 'Cartão Crédito' %}selected{% endif %}>💳 Cartão Crédito</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Mecânico Responsável</label>
+                    <select class="form-select" name="mecanico_responsavel_id">
+                        <option value="">Sem responsável</option>
+                        {% for mecanico in mecanicos %}
+                        <option value="{{ mecanico.id }}"
+                            {% if ordem.mecanico_responsavel_id == mecanico.id %}selected{% endif %}>
+                            {{ mecanico.nome }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-check-circle"></i> Atualizar
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Totais -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-info">
+            <div class="card-body text-center">
+                <h6>Peças</h6>
+                <h4>R$ {{ '{:,.2f}'.format(ordem.total_pecas).replace(',', 'X').replace('.', ',').replace('X', '.') }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-warning">
+            <div class="card-body text-center">
+                <h6>Mão de Obra</h6>
+                <h4>R$ {{ '{:,.2f}'.format(ordem.total_mao_obra).replace(',', 'X').replace('.', ',').replace('X', '.') }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-success">
+            <div class="card-body text-center">
+                <h6>Total Geral</h6>
+                <h4>R$ {{ '{:,.2f}'.format(ordem.total_geral).replace(',', 'X').replace('.', ',').replace('X', '.') }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-primary">
+            <div class="card-body text-center">
+                <h6>Lucro Estimado</h6>
+                <h4>R$ {{ '{:,.2f}'.format(ordem.lucro_estimado).replace(',', 'X').replace('.', ',').replace('X', '.') }}</h4>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Itens da OS -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <strong><i class="bi bi-list-ul"></i> Itens da OS</strong>
+        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalAdicionarItem">
+            <i class="bi bi-plus-circle"></i> Adicionar Item
+        </button>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Tipo</th>
+                        <th>Item</th>
+                        <th>Qtd</th>
+                        <th>Custo Unit.</th>
+                        <th>Venda Unit.</th>
+                        <th>Subtotal</th>
+                        <th>Lucro</th>
+                        <th width="80">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in itens %}
+                    <tr>
+                        <td>
+                            {% if item.tipo == 'PECA' %}
+                                <span class="badge bg-info">Peça</span>
+                            {% elif item.tipo == 'TERCEIRIZADO' %}
+                                <span class="badge bg-secondary">Terceirizado</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark">Serviço</span>
+                            {% endif %}
+                        </td>
+                        <td><strong>{{ item.nome_item }}</strong></td>
+                        <td>{{ item.quantidade }}</td>
+                        <td>R$ {{ '{:,.2f}'.format(item.custo_unitario).replace(',', 'X').replace('.', ',').replace('X', '.') }}</td>
+                        <td>R$ {{ '{:,.2f}'.format(item.venda_unitario).replace(',', 'X').replace('.', ',').replace('X', '.') }}</td>
+                        <td><strong>R$ {{ '{:,.2f}'.format(item.quantidade * item.venda_unitario).replace(',', 'X').replace('.', ',').replace('X', '.') }}</strong></td>
+                        <td>
+                            {% set lucro_item = (item.venda_unitario - item.custo_unitario) * item.quantidade %}
+                            <span class="badge {% if lucro_item > 0 %}bg-success{% else %}bg-danger{% endif %}">
+                                R$ {{ '{:,.2f}'.format(lucro_item).replace(',', 'X').replace('.', ',').replace('X', '.') }}
+                            </span>
+                        </td>
+                        <td>
+                            <form method="POST" action="{{ url_for('os.remover_item', os_id=ordem.id, item_id=item.id) }}"
+                                  style="display:inline;" onsubmit="return confirm('Remover este item?')">
+                                <button type="submit" class="btn btn-sm btn-danger">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted">
+                            Nenhum item adicionado. Clique em "Adicionar Item" para começar.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Adicionar Item -->
+<div class="modal fade" id="modalAdicionarItem" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Adicionar Item à OS</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Tipo *</label>
+                    <select class="form-select" id="tipoItem">
+                        <option value="PECA">🔧 Peça</option>
+                        <option value="MAO_OBRA">🔨 Mão de Obra</option>
+                        <option value="TERCEIRIZADO">👷 Terceirizado</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Origem *</label>
+                    <div class="btn-group w-100" role="group">
+                        <input type="radio" class="btn-check" name="origem" id="origemEstoque" value="estoque">
+                        <label class="btn btn-outline-primary" for="origemEstoque">
+                            <i class="bi bi-box-seam"></i> Do Estoque
+                        </label>
+
+                        <input type="radio" class="btn-check" name="origem" id="origemManual" value="manual" checked>
+                        <label class="btn btn-outline-primary" for="origemManual">
+                            <i class="bi bi-pencil"></i> Digitar Manualmente
+                        </label>
+                    </div>
+                </div>
+
+                <div id="divEstoque" style="display:none;">
+                    <div class="mb-3">
+                        <label class="form-label">Selecionar do Estoque</label>
+                        <select class="form-select" id="estoqueSelect">
+                            <option value="">Selecione um item...</option>
+                            {% for item in estoque %}
+                            <option value="{{ item.id }}"
+                                    data-nome="{{ item.nome }}"
+                                    data-custo="{{ item.custo }}"
+                                    data-venda="{{ item.venda }}"
+                                    data-quantidade="{{ item.quantidade }}"
+                                    data-categoria="{{ item.categoria }}">
+                                {{ item.nome }} - Disponível: {{ item.quantidade }} - R$ {{ '{:.2f}'.format(item.venda) }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Quantidade *</label>
+                        <input type="number" class="form-control" id="quantidadeEstoque" min="1" value="1">
+                        <small class="text-muted" id="disponivelTexto"></small>
+                    </div>
+                </div>
+
+                <div id="divManual">
+                    <div class="mb-3">
+                        <label class="form-label">Nome do Item *</label>
+                        <input type="text" class="form-control" id="nomeItemManual" placeholder="Ex: Filtro de Óleo XYZ">
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <label class="form-label">Quantidade *</label>
+                            <input type="number" class="form-control" id="quantidadeManual" min="1" value="1">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Custo Unitário</label>
+                            <input type="number" class="form-control" id="custoManual" step="0.01" min="0" value="0">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Venda Unitário *</label>
+                            <input type="number" class="form-control" id="vendaManual" step="0.01" min="0">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <button type="button" class="btn btn-primary" id="btnAddLista">
+                        <i class="bi bi-plus-circle"></i> Adicionar na lista
+                    </button>
+                </div>
+
+                <hr>
+
+                <h6 class="mb-2">Itens pendentes</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Tipo</th>
+                                <th>Item</th>
+                                <th>Qtd</th>
+                                <th>V. Unit.</th>
+                                <th>Subtotal</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="listaItensPendentes">
+                            <tr id="linhaVazia">
+                                <td colspan="6" class="text-center text-muted">Nenhum item adicionado ainda.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="text-end">
+                    <strong>Total parcial: R$ <span id="totalParcial">0,00</span></strong>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-outline-danger" id="btnLimparLista">Limpar lista</button>
+                <button type="button" class="btn btn-success" id="btnSalvarTudo">
+                    <i class="bi bi-check-circle"></i> Salvar tudo
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form id="formSalvarItens" method="POST" action="{{ url_for('os.adicionar_item', os_id=ordem.id) }}" style="display:none;">
+    <input type="hidden" name="payload_itens" id="payloadItens">
+</form>
+
+<script>
+const itensPendentes = [];
+
+function moeda(v) {
+    return (Number(v) || 0).toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+}
+
+function atualizarTabelaPendentes() {
+    const tbody = document.getElementById('listaItensPendentes');
+    tbody.innerHTML = '';
+
+    let total = 0;
+
+    if (itensPendentes.length === 0) {
+        const tr = document.createElement('tr');
+        tr.id = 'linhaVazia';
+        tr.innerHTML = '<td colspan="6" class="text-center text-muted">Nenhum item adicionado ainda.</td>';
+        tbody.appendChild(tr);
+    } else {
+        itensPendentes.forEach((item, index) => {
+            const subtotal = Number(item.quantidade) * Number(item.venda_unitario);
+            total += subtotal;
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${item.tipo === 'PECA' ? 'Peça' : 
+                item.tipo === 'TERCEIRIZADO' ? 'Terceirizado' : 'Serviço'}</td>
+                <td>${item.nome_item}</td>
+                <td>${item.quantidade}</td>
+                <td>R$ ${moeda(item.venda_unitario)}</td>
+                <td>R$ ${moeda(subtotal)}</td>
+                <td>
+                    <button type="button" class="btn btn-sm btn-danger" data-index="${index}">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    document.getElementById('totalParcial').textContent = moeda(total);
+}
+
+function alternarOrigemModal() {
+    const origem = document.querySelector('input[name="origem"]:checked').value;
+
+    if (origem === 'estoque') {
+        document.getElementById('divEstoque').style.display = 'block';
+        document.getElementById('divManual').style.display = 'none';
+    } else {
+        document.getElementById('divEstoque').style.display = 'none';
+        document.getElementById('divManual').style.display = 'block';
+    }
+}
+
+document.querySelectorAll('input[name="origem"]').forEach(radio => {
+    radio.addEventListener('change', alternarOrigemModal);
+});
+
+document.getElementById('tipoItem').addEventListener('change', function() {
+    const tipo = this.value;
+    const select = document.getElementById('estoqueSelect');
+
+    Array.from(select.options).forEach(option => {
+        if (!option.value) return;
+        const categoria = option.getAttribute('data-categoria');
+        option.style.display = tipo === 'PECA'
+            ? (categoria === 'MAO_OBRA' ? 'none' : '')
+            : (categoria === 'MAO_OBRA' ? '' : 'none');
+    });
+
+    select.value = '';
+});
+
+document.getElementById('estoqueSelect').addEventListener('change', function() {
+    const option = this.options[this.selectedIndex];
+    const quantidade = option.getAttribute('data-quantidade') || '';
+    document.getElementById('disponivelTexto').textContent = quantidade
+        ? `Disponível em estoque: ${quantidade} unidades`
+        : '';
+    document.getElementById('quantidadeEstoque').max = quantidade || '';
+});
+
+document.getElementById('btnAddLista').addEventListener('click', function() {
+    const origem = document.querySelector('input[name="origem"]:checked').value;
+    const tipo = document.getElementById('tipoItem').value;
+
+    let item = null;
+
+    if (origem === 'estoque') {
+        const select = document.getElementById('estoqueSelect');
+        const opt = select.options[select.selectedIndex];
+
+        if (!select.value) return alert('Selecione um item do estoque.');
+
+        const quantidade = Number(document.getElementById('quantidadeEstoque').value || 1);
+        const disponivel = Number(opt.getAttribute('data-quantidade') || 0);
+
+        if (quantidade < 1) return alert('Quantidade inválida.');
+        if (quantidade > disponivel) return alert('Quantidade maior que o disponível no estoque.');
+
+        item = {
+            origem: 'estoque',
+            estoque_id: select.value,
+            tipo,
+            nome_item: opt.getAttribute('data-nome'),
+            quantidade,
+            custo_unitario: Number(opt.getAttribute('data-custo') || 0),
+            venda_unitario: Number(opt.getAttribute('data-venda') || 0)
+        };
+    } else {
+        const nome_item = document.getElementById('nomeItemManual').value.trim();
+        const quantidade = Number(document.getElementById('quantidadeManual').value || 1);
+        const custo_unitario = Number(document.getElementById('custoManual').value || 0);
+        const venda_unitario = Number(document.getElementById('vendaManual').value || 0);
+
+        if (!nome_item) return alert('Informe o nome do item.');
+        if (quantidade < 1) return alert('Quantidade inválida.');
+        if (venda_unitario < 0) return alert('Informe o valor de venda.');
+
+        item = {
+            origem: 'manual',
+            tipo,
+            nome_item,
+            quantidade,
+            custo_unitario,
+            venda_unitario
+        };
+    }
+
+    itensPendentes.push(item);
+    atualizarTabelaPendentes();
+
+    if (origem === 'estoque') {
+        document.getElementById('estoqueSelect').value = '';
+        document.getElementById('quantidadeEstoque').value = 1;
+        document.getElementById('disponivelTexto').textContent = '';
+    } else {
+        document.getElementById('nomeItemManual').value = '';
+        document.getElementById('quantidadeManual').value = 1;
+        document.getElementById('custoManual').value = 0;
+        document.getElementById('vendaManual').value = '';
+    }
+
+    document.getElementById('origemManual').checked = true;
+    alternarOrigemModal();
+});
+
+document.getElementById('listaItensPendentes').addEventListener('click', function(e) {
+    const btn = e.target.closest('button[data-index]');
+    if (!btn) return;
+    itensPendentes.splice(Number(btn.dataset.index), 1);
+    atualizarTabelaPendentes();
+});
+
+document.getElementById('btnLimparLista').addEventListener('click', function() {
+    itensPendentes.length = 0;
+    atualizarTabelaPendentes();
+});
+
+document.getElementById('btnSalvarTudo').addEventListener('click', async function() {
+    if (itensPendentes.length === 0) return alert('Adicione pelo menos um item.');
+
+    const btn = this;
+    const textoOriginal = btn.innerHTML;
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Salvando...';
+
+    try {
+        const formData = new FormData();
+        formData.append('payload_itens', JSON.stringify(itensPendentes));
+
+        const resp = await fetch(document.getElementById('formSalvarItens').action, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (resp.redirected) {
+            window.location.href = resp.url;
+            return;
+        }
+
+        if (resp.ok) {
+            location.reload();
+            return;
+        }
+
+        let msg = 'Erro desconhecido';
+        try {
+            const data = await resp.json();
+            msg = data.erro || msg;
+        } catch (e) {}
+        throw new Error(msg);
+    } catch (err) {
+        alert('Erro: ' + err.message);
+        btn.disabled = false;
+        btn.innerHTML = textoOriginal;
+    }
+});
+
+document.getElementById('modalAdicionarItem').addEventListener('show.bs.modal', function () {
+    document.getElementById('origemManual').checked = true;
+    alternarOrigemModal();
+    atualizarTabelaPendentes();
+});
+
+// ✅ ANTI-SPAM REFINADO — intercepta submit real
+document.addEventListener('submit', function(e) {
+    const form = e.target;
+    if (!form.matches('form[method="POST"]')) return;
+    
+    const btnSubmit = form.querySelector('button[type="submit"]');
+    if (!btnSubmit || btnSubmit.disabled) {
+        e.preventDefault();
+        return false;
+    }
+    
+    // Trava botão
+    const textoOriginal = btnSubmit.innerHTML;
+    btnSubmit.dataset.original = textoOriginal;
+    btnSubmit.disabled = true;
+    btnSubmit.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Salvando...';
+    
+    // Intercepta submit e usa fetch
+    e.preventDefault();
+    
+    const formData = new FormData(form);
+    fetch(form.action, {
+        method: 'POST',
+        body: formData
+    })
+    .then(r => {
+        if (r.redirected) {
+            window.location.href = r.url;  // Redirect do backend
+        } else if (r.ok) {
+            location.reload();  // Recarrega página (sucesso)
+        } else {
+            return r.json().then(data => {
+                throw new Error(data.erro || 'Erro desconhecido');
+            });
+        }
+    })
+    .catch(err => {
+        alert('Erro: ' + err.message);
+        btnSubmit.disabled = false;
+        btnSubmit.innerHTML = textoOriginal;
+    });
+}, true);  // ← true = capture phase
+
+</script>
+
+<!-- Modal Deletar OS -->
+<div class="modal fade" id="modalDeletarOS" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger"><i class="bi bi-trash"></i> Excluir OS</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('os.deletar', os_id=ordem.id) }}">
+                <div class="modal-body">
+                    <p>Tem certeza? <strong>Os itens serão devolvidos ao estoque.</strong></p>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Motivo da exclusão *</label>
+                        <textarea class="form-control" name="motivo" rows="3"
+                                  placeholder="Ex: OS duplicada, cliente cancelou serviço..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Confirmar Exclusão
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

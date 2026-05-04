@@ -1,0 +1,454 @@
+{% extends 'base.html' %}
+
+{% block title %}Ordens de Serviço - Sistema Oficina{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-file-earmark-text"></i> Ordens de Serviço</h2>
+    <div>
+        <div class="btn-group me-2">
+            <a href="{{ url_for('os.listar', visao='lista') }}" 
+               class="btn {% if visao == 'lista' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                <i class="bi bi-list-ul"></i> Lista
+            </a>
+            <a href="{{ url_for('os.listar', visao='kanban') }}" 
+               class="btn {% if visao == 'kanban' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                <i class="bi bi-kanban"></i> Kanban
+            </a>
+        </div>
+        <a href="{{ url_for('os.nova') }}" class="btn btn-success">
+            <i class="bi bi-plus-circle"></i> Nova OS
+        </a>
+    </div>
+</div>
+
+{% if visao == 'kanban' %}
+    <!-- VISÃO KANBAN -->
+    <div class="row g-3" id="kanban-board">
+        <div class="col">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <strong>📋 Orçamento</strong>
+                    <span class="badge bg-light text-dark">{{ ordens_por_status['ORCAMENTO']|length }}</span>
+                </div>
+                <div class="card-body p-2 kanban-column" data-status="ORCAMENTO" style="min-height: 500px;">
+                    {% for ordem in ordens_por_status['ORCAMENTO'] %}
+                        {% include 'os/_card_kanban.html' %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <strong>⏳ Aguardando Peça</strong>
+                    <span class="badge bg-light text-dark">{{ ordens_por_status['AGUARDANDO_PECA']|length }}</span>
+                </div>
+                <div class="card-body p-2 kanban-column" data-status="AGUARDANDO_PECA" style="min-height: 500px;">
+                    {% for ordem in ordens_por_status['AGUARDANDO_PECA'] %}
+                        {% include 'os/_card_kanban.html' %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <strong>🔧 Em Execução</strong>
+                    <span class="badge bg-light text-dark">{{ ordens_por_status['EXECUCAO']|length }}</span>
+                </div>
+                <div class="card-body p-2 kanban-column" data-status="EXECUCAO" style="min-height: 500px;">
+                    {% for ordem in ordens_por_status['EXECUCAO'] %}
+                        {% include 'os/_card_kanban.html' %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <strong>✅ Finalizado</strong>
+                    <span class="badge bg-light text-dark">{{ ordens_por_status['FINALIZADO']|length }}</span>
+                </div>
+                <div class="card-body p-2 kanban-column" data-status="FINALIZADO" style="min-height: 500px;">
+                    {% for ordem in ordens_por_status['FINALIZADO'] %}
+                        {% include 'os/_card_kanban.html' %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <strong>💰 Pago</strong>
+                    <span class="badge bg-light text-dark">{{ ordens_por_status['PAGO']|length }}</span>
+                </div>
+                <div class="card-body p-2 kanban-column" data-status="PAGO" style="min-height: 500px;">
+                    {% for ordem in ordens_por_status['PAGO'] %}
+                        {% include 'os/_card_kanban.html' %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% else %}
+    <!-- FILTROS -->
+    <div class="card mb-3">
+        <div class="card-body pb-2">
+            <div class="row g-2 align-items-end">
+
+                <!-- Busca texto -->
+                <div class="col-12 col-md-4">
+                    <label class="form-label form-label-sm text-muted mb-1">
+                        <i class="bi bi-search"></i> Busca
+                    </label>
+                    <div class="input-group input-group-sm">
+                        <input type="text" class="form-control" id="campoBusca"
+                               placeholder="Placa, modelo ou cliente...">
+                        <button class="btn btn-outline-secondary" onclick="limparFiltros()">
+                            <i class="bi bi-x-circle"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Data inicial / final -->
+                <div class="col-6 col-md-2">
+                    <label class="form-label form-label-sm text-muted mb-1">
+                        <i class="bi bi-calendar-event"></i> Data de
+                    </label>
+                    <input type="date" class="form-control form-control-sm" id="filtroDataDe">
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label form-label-sm text-muted mb-1">
+                        <i class="bi bi-calendar-event"></i> Data até
+                    </label>
+                    <input type="date" class="form-control form-control-sm" id="filtroDataAte">
+                </div>
+
+                <!-- Valor mínimo / máximo -->
+                <div class="col-6 col-md-2">
+                    <label class="form-label form-label-sm text-muted mb-1">
+                        <i class="bi bi-currency-dollar"></i> Valor de
+                    </label>
+                    <input type="number" class="form-control form-control-sm" id="filtroValorDe"
+                           placeholder="0,00" min="0" step="0.01">
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label form-label-sm text-muted mb-1">
+                        <i class="bi bi-currency-dollar"></i> Valor até
+                    </label>
+                    <input type="number" class="form-control form-control-sm" id="filtroValorAte"
+                           placeholder="∞" min="0" step="0.01">
+                </div>
+
+            </div>
+
+            <!-- Filtro de status (chips) -->
+            <div class="mt-2 d-flex flex-wrap gap-1 align-items-center">
+                <small class="text-muted me-1">Status:</small>
+                <button class="btn btn-sm btn-secondary chip-status active" data-status="ORCAMENTO">📋 Orçamento</button>
+                <button class="btn btn-sm btn-warning chip-status active" data-status="AGUARDANDO_PECA">⏳ Aguardando</button>
+                <button class="btn btn-sm btn-info chip-status active" data-status="EXECUCAO">🔧 Execução</button>
+                <button class="btn btn-sm btn-success chip-status active" data-status="FINALIZADO">✅ Finalizado</button>
+                <button class="btn btn-sm btn-primary chip-status active" data-status="PAGO">💰 Pago</button>
+                <span class="ms-2 text-muted" id="contadorResultados" style="font-size:0.8rem;"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- TABELA -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover" id="tabelaOS">
+                    <thead>
+                        <tr>
+                            <th style="cursor:pointer;" onclick="ordenarPor('data')">
+                                Data <i class="bi bi-arrow-down-up" id="icon-data"></i>
+                            </th>
+                            <th>Cliente</th>
+                            <th>Veículo</th>
+                            <th>Status</th>
+                            <th style="cursor:pointer;" onclick="ordenarPor('valor')">
+                                Total <i class="bi bi-arrow-down-up" id="icon-valor"></i>
+                            </th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="corpoTabela">
+                        {% set todas_ordens = ordens_por_status.values() | sum(start=[]) %}
+                        {% for ordem in todas_ordens %}
+                        <tr class="linha-os"
+                            data-cliente="{{ ordem.clientes.nome if ordem.clientes else '' }}"
+                            data-placa="{{ ordem.veiculos.placa if ordem.veiculos else '' }}"
+                            data-modelo="{{ ordem.veiculos.modelo if ordem.veiculos else '' }}"
+                            data-status="{{ ordem.status }}"
+                            data-valor="{{ ordem.total_geral or 0 }}"
+                            data-data="{{ ordem.data_fechamento[:10] if (ordem.status == 'PAGO' and ordem.data_fechamento) else (ordem.data_abertura[:10] if ordem.data_abertura else '0000-00-00') }}">
+
+                            <td data-label="Data">
+                                {% if ordem.status == 'PAGO' and ordem.data_fechamento %}
+                                    <span class="text-success">
+                                        <i class="bi bi-check-circle"></i>
+                                        {{ ordem.data_fechamento[:10].split('-')|reverse|join('/') }}
+                                    </span>
+                                    <br><small class="text-muted">Encerrada</small>
+                                {% else %}
+                                    {{ ordem.data_abertura[:10].split('-')|reverse|join('/') if ordem.data_abertura else '-' }}
+                                    <br><small class="text-muted">Abertura</small>
+                                {% endif %}
+                            </td>
+                            <td data-label="Cliente">
+                                {% if ordem.clientes %}
+                                    <strong>{{ ordem.clientes.nome }}</strong>
+                                    <br><small class="text-muted">{{ ordem.clientes.telefone }}</small>
+                                {% else %}-{% endif %}
+                            </td>
+                            <td data-label="Veículo">
+                                {% if ordem.veiculos %}
+                                    {{ ordem.veiculos.placa }} — {{ ordem.veiculos.modelo }}
+                                {% else %}-{% endif %}
+                            </td>
+                            <td data-label="Status">
+                                {% if ordem.status == 'ORCAMENTO' %}
+                                    <span class="badge bg-secondary">📋 Orçamento</span>
+                                {% elif ordem.status == 'AGUARDANDO_PECA' %}
+                                    <span class="badge bg-warning text-dark">⏳ Aguard. Peça</span>
+                                {% elif ordem.status == 'EXECUCAO' %}
+                                    <span class="badge bg-info">🔧 Execução</span>
+                                {% elif ordem.status == 'FINALIZADO' %}
+                                    <span class="badge bg-success">✅ Finalizado</span>
+                                {% elif ordem.status == 'PAGO' %}
+                                    <span class="badge bg-primary">💰 Pago</span>
+                                {% endif %}
+                            </td>
+                            <td data-label="Total">
+                                R$ {{ '{:,.2f}'.format(ordem.total_geral or 0).replace(',','X').replace('.',',').replace('X','.') }}
+                            </td>
+                            <td data-label="Ações">
+                                <a href="{{ url_for('os.editar', os_id=ordem.id) }}"
+                                   class="btn btn-sm btn-warning">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <button class="btn btn-sm btn-danger"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#modalDeletar"
+                                        data-os-id="{{ ordem.id }}">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">
+                                <i class="bi bi-inbox fs-4 d-block mb-2"></i>
+                                Nenhuma OS encontrada.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+
+                <div id="nenhumResultado" class="text-center p-4" style="display:none;">
+                    <i class="bi bi-funnel text-muted" style="font-size: 3rem;"></i>
+                    <p class="text-muted mt-2">Nenhuma OS encontrada com esses filtros</p>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="limparFiltros()">
+                        Limpar filtros
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endif %}
+
+<!-- Modal Deletar -->
+<div class="modal fade" id="modalDeletar" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger"><i class="bi bi-trash"></i> Excluir OS</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" id="formDeletar">
+                <div class="modal-body">
+                    <p>Tem certeza que deseja excluir esta OS? Esta ação não pode ser desfeita.</p>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Motivo da exclusão *</label>
+                        <textarea class="form-control" name="motivo" rows="3"
+                                  placeholder="Ex: OS duplicada, cliente cancelou serviço..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Confirmar Exclusão
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script>
+const VISAO = {{ visao | tojson }};
+
+// ── KANBAN ────────────────────────────────────────────────────
+if (VISAO === 'kanban') {
+    document.querySelectorAll('.kanban-column').forEach(column => {
+        new Sortable(column, {
+            group: 'kanban', animation: 150, ghostClass: 'sortable-ghost',
+            onEnd(evt) {
+                const osId     = evt.item.getAttribute('data-os-id');
+                const novoStatus = evt.to.getAttribute('data-status');
+                fetch(`/os/${osId}/atualizar_status`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `status=${novoStatus}`
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        document.querySelectorAll('.kanban-column').forEach(col => {
+                            col.closest('.card').querySelector('.badge').textContent =
+                                col.querySelectorAll('.kanban-card').length;
+                        });
+                    } else { alert('Erro: ' + data.error); location.reload(); }
+                })
+                .catch(() => { alert('Erro de conexão'); location.reload(); });
+            }
+        });
+    });
+}
+
+// ── LISTA: ORDENAÇÃO + FILTROS ────────────────────────────────
+if (VISAO === 'lista') {
+
+    // Estado
+    let ordemAtual = { col: 'data', dir: 'asc' };
+    let statusAtivos = new Set(['ORCAMENTO','AGUARDANDO_PECA','EXECUCAO','FINALIZADO','PAGO']);
+
+    // Ordenar por data asc ao carregar
+    ordenarPor('data');
+
+    // Chips de status
+    document.querySelectorAll('.chip-status').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const s = this.dataset.status;
+            if (statusAtivos.has(s)) {
+                statusAtivos.delete(s);
+                this.classList.remove('active');
+                this.style.opacity = '0.45';
+            } else {
+                statusAtivos.add(s);
+                this.classList.add('active');
+                this.style.opacity = '1';
+            }
+            aplicarFiltros();
+        });
+    });
+
+    // Inputs de filtro — dispara no evento input
+    ['campoBusca','filtroDataDe','filtroDataAte','filtroValorDe','filtroValorAte']
+        .forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('input', aplicarFiltros);
+        });
+
+    function aplicarFiltros() {
+        const termo   = document.getElementById('campoBusca').value.toLowerCase().trim();
+        const dataDe  = document.getElementById('filtroDataDe').value;   // 'YYYY-MM-DD' ou ''
+        const dataAte = document.getElementById('filtroDataAte').value;
+        const valDe   = parseFloat(document.getElementById('filtroValorDe').value) || 0;
+        const valAte  = parseFloat(document.getElementById('filtroValorAte').value) || Infinity;
+
+        const linhas  = document.querySelectorAll('.linha-os');
+        let visiveis  = 0;
+
+        linhas.forEach(tr => {
+            const passaTexto  = !termo ||
+                tr.dataset.cliente.toLowerCase().includes(termo) ||
+                tr.dataset.placa.toLowerCase().includes(termo)   ||
+                tr.dataset.modelo.toLowerCase().includes(termo);
+
+            const dataLinha   = tr.dataset.data;                        // 'YYYY-MM-DD'
+            const passaDataDe = !dataDe  || dataLinha >= dataDe;
+            const passaDataAte= !dataAte || dataLinha <= dataAte;
+
+            const valor       = parseFloat(tr.dataset.valor) || 0;
+            const passaValor  = valor >= valDe && valor <= valAte;
+
+            const passaStatus = statusAtivos.has(tr.dataset.status);
+
+            const visivel = passaTexto && passaDataDe && passaDataAte && passaValor && passaStatus;
+            tr.style.display = visivel ? '' : 'none';
+            if (visivel) visiveis++;
+        });
+
+        const nenhumEl = document.getElementById('nenhumResultado');
+        nenhumEl.style.display = visiveis === 0 ? 'block' : 'none';
+
+        const contador = document.getElementById('contadorResultados');
+        contador.textContent = visiveis > 0 ? `${visiveis} resultado(s)` : '';
+    }
+
+    function limparFiltros() {
+        ['campoBusca','filtroDataDe','filtroDataAte','filtroValorDe','filtroValorAte']
+            .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+        statusAtivos = new Set(['ORCAMENTO','AGUARDANDO_PECA','EXECUCAO','FINALIZADO','PAGO']);
+        document.querySelectorAll('.chip-status').forEach(b => {
+            b.classList.add('active'); b.style.opacity = '1';
+        });
+        aplicarFiltros();
+    }
+    window.limparFiltros = limparFiltros;
+
+    function ordenarPor(col) {
+        if (ordemAtual.col === col) {
+            ordemAtual.dir = ordemAtual.dir === 'asc' ? 'desc' : 'asc';
+        } else {
+            ordemAtual = { col, dir: col === 'data' ? 'desc' : 'asc' };
+        }
+
+        // Atualizar ícones
+        ['data','valor'].forEach(c => {
+            const icon = document.getElementById(`icon-${c}`);
+            if (!icon) return;
+            icon.className = ordemAtual.col === c
+                ? (ordemAtual.dir === 'asc' ? 'bi bi-arrow-up' : 'bi bi-arrow-down')
+                : 'bi bi-arrow-down-up text-muted';
+        });
+
+        const tbody = document.getElementById('corpoTabela');
+        const linhas = Array.from(tbody.querySelectorAll('.linha-os'));
+        linhas.sort((a, b) => {
+            let va = col === 'data' ? a.dataset.data  : parseFloat(a.dataset.valor);
+            let vb = col === 'data' ? b.dataset.data  : parseFloat(b.dataset.valor);
+            if (va < vb) return ordemAtual.dir === 'asc' ? -1 :  1;
+            if (va > vb) return ordemAtual.dir === 'asc' ?  1 : -1;
+            return 0;
+        });
+        linhas.forEach(tr => tbody.appendChild(tr));
+        aplicarFiltros();
+    }
+    window.ordenarPor = ordenarPor;
+}
+
+// Modal deletar
+const modalDeletar = document.getElementById('modalDeletar');
+if (modalDeletar) {
+    modalDeletar.addEventListener('show.bs.modal', e => {
+        document.getElementById('formDeletar').action =
+            `/os/${e.relatedTarget.getAttribute('data-os-id')}/deletar`;
+    });
+}
+</script>
+
+<style>
+.sortable-ghost { opacity: 0.4; background: #f8f9fa; }
+.kanban-card { cursor: move; }
+.kanban-column { background: #f8f9fa; border-radius: 0.25rem; }
+</style>
+
+{% endblock %}

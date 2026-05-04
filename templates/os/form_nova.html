@@ -1,0 +1,509 @@
+{% extends 'base.html' %}
+
+{% block title %}Nova OS - Sistema Oficina{% endblock %}
+
+{% block content %}
+<h2><i class="bi bi-file-earmark-plus"></i> Nova Ordem de Serviço</h2>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST" id="formNovaOS">
+            <!-- Cliente -->
+            <div class="mb-3">
+                <label for="busca_cliente" class="form-label">Cliente *</label>
+                <div class="input-group">
+                    <input type="text" 
+                           class="form-control" 
+                           id="busca_cliente" 
+                           placeholder="Digite o nome ou telefone do cliente..."
+                           autocomplete="off">
+                    
+                    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalNovoCliente">
+                        <i class="bi bi-plus-circle"></i> Novo Cliente
+                    </button>
+                </div>
+                
+                <input type="hidden" name="cliente_id" id="cliente_id" required>
+                
+                <div id="sugestoes_cliente" class="list-group" style="position: absolute; z-index: 1000; max-height: 300px; overflow-y: auto; display: none; width: calc(100% - 30px);"></div>
+            </div>
+
+            <!-- Veículo (Dropdown) -->
+            <div class="mb-3">
+                <label for="veiculo_select" class="form-label">Veículo *</label>
+                <div class="input-group">
+                    <select class="form-select" id="veiculo_select" name="veiculo_id" required disabled>
+                        <option value="">Selecione um cliente primeiro...</option>
+                    </select>
+                    
+                    <button type="button" class="btn btn-success" id="btnNovoVeiculo" data-bs-toggle="modal" data-bs-target="#modalNovoVeiculo" disabled>
+                        <i class="bi bi-plus-circle"></i> Novo Veículo
+                    </button>
+                </div>
+            </div>
+
+                        <div class="mb-3">
+                <label for="descricao_problema" class="form-label">Descrição do Problema/Serviço</label>
+                <textarea class="form-control" 
+                        id="descricao_problema" 
+                        name="descricao_problema" 
+                        rows="3" 
+                        placeholder="Ex: Cliente relata barulho ao frear, necessário revisar sistema de freios..."></textarea>
+                <small class="text-muted">Descreva o problema relatado pelo cliente ou serviço a ser realizado</small>
+            </div>
+
+            <!-- KM Atual -->
+            <div class="mb-3">
+                <label for="km_atual" class="form-label">KM Atual</label>
+                <input type="number" 
+                    class="form-control" 
+                    id="km_atual" 
+                    name="km_atual" 
+                    min="0" 
+                    placeholder="Ex: 50000">
+                <small class="text-muted" id="km_veiculo_info"></small>
+            </div>
+
+            <hr>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-check-circle"></i> Criar OS
+                </button>
+                <a href="{{ url_for('os.listar') }}" class="btn btn-secondary">
+                    <i class="bi bi-x-circle"></i> Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Novo Cliente -->
+<div class="modal fade" id="modalNovoCliente" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Cadastro Rápido de Cliente</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formNovoCliente">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nome *</label>
+                        <input type="text" class="form-control" id="nome_cliente" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Telefone *</label>
+                        <input type="text" class="form-control" id="telefone_cliente" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">CPF/CNPJ</label>
+                        <input type="text" class="form-control" id="cpf_cliente">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle"></i> Salvar Cliente
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Novo Veículo -->
+<div class="modal fade" id="modalNovoVeiculo" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Cadastro Rápido de Veículo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formNovoVeiculo">
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <small>Veículo será cadastrado para: <strong id="clienteVeiculoNome">-</strong></small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Placa *</label>
+                        <div class="d-flex align-items-center gap-2">
+                            <input type="text" class="form-control text-uppercase"
+                                   id="placa_veiculo" maxlength="7"
+                                   placeholder="ABC1234 ou ABC1D23" required>
+                            <span id="badgePlacaModal" style="display:none;"></span>
+                        </div>
+                        <small class="text-muted">Modelo, marca e cor serão preenchidos automaticamente</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Modelo *</label>
+                        <input type="text" class="form-control" id="modelo_veiculo"
+                               placeholder="Fiat Uno Vivace 1.0" required>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Marca</label>
+                            <input type="text" class="form-control" id="marca_veiculo" placeholder="Fiat">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Cor</label>
+                            <input type="text" class="form-control" id="cor_veiculo" placeholder="Prata">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Ano de Fabricação</label>
+                            <input type="number" class="form-control" id="ano_veiculo"
+                                   min="1950" max="2099" placeholder="Ex: 2007">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Chassi</label>
+                            <input type="text" class="form-control text-uppercase"
+                                   id="chassi_veiculo" maxlength="17"
+                                   placeholder="Preenchido automaticamente">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success" id="btnSalvarVeiculo">
+                        <i class="bi bi-check-circle"></i> Salvar Veículo
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Dados
+let clientes = {{ clientes|tojson }};
+let veiculos = {{ veiculos|tojson }};
+
+const inputCliente = document.getElementById('busca_cliente');
+const inputClienteHidden = document.getElementById('cliente_id');
+const divSugestoesCliente = document.getElementById('sugestoes_cliente');
+const veiculoSelect = document.getElementById('veiculo_select');
+const btnNovoVeiculo = document.getElementById('btnNovoVeiculo');
+
+let clienteSelecionado = null;
+
+// ========== CONSULTA DE PLACA NO MODAL ==========
+document.getElementById('placa_veiculo').addEventListener('input', function() {
+    const placa = this.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    this.value = placa;
+
+    const badge = document.getElementById('badgePlacaModal');
+
+    if (placa.length !== 7) {
+        badge.style.display = 'none';
+        return;
+    }
+
+    badge.className = 'badge bg-warning text-dark ms-2';
+    badge.textContent = '🔍 Consultando...';
+    badge.style.display = 'inline';
+
+    fetch(`/veiculos/consultar-placa/${placa}`)
+        .then(r => r.json())
+        .then(dados => {
+            if (dados.erro) {
+                badge.className = 'badge bg-danger ms-2';
+                badge.textContent = '❌ ' + dados.erro;
+                return;
+            }
+            document.getElementById('modelo_veiculo').value = dados.modelo || '';
+            document.getElementById('marca_veiculo').value  = dados.marca  || '';
+            document.getElementById('cor_veiculo').value    = dados.cor    || '';
+            document.getElementById('ano_veiculo').value    = dados.ano    || '';
+            document.getElementById('chassi_veiculo').value = dados.chassi || '';
+
+            badge.className = 'badge bg-success ms-2';
+            badge.textContent = '✅ Veículo encontrado!';
+        })
+        .catch(() => {
+            badge.className = 'badge bg-danger ms-2';
+            badge.textContent = '❌ Erro na consulta';
+        });
+});
+
+// ========== AUTOCOMPLETE CLIENTE ==========
+inputCliente.addEventListener('input', function() {
+    const termo = this.value.toLowerCase().trim();
+    inputClienteHidden.value = '';
+    clienteSelecionado = null;
+    
+    // Desabilitar veículo
+    veiculoSelect.disabled = true;
+    veiculoSelect.innerHTML = '<option value="">Selecione um cliente primeiro...</option>';
+    btnNovoVeiculo.disabled = true;
+    
+    if (termo.length < 2) {
+        divSugestoesCliente.style.display = 'none';
+        return;
+    }
+    
+    const resultados = clientes.filter(c => 
+        c.nome.toLowerCase().includes(termo) || 
+        c.telefone.includes(termo)
+    );
+    
+    if (resultados.length === 0) {
+        divSugestoesCliente.innerHTML = '<div class="list-group-item text-muted">Nenhum cliente encontrado</div>';
+        divSugestoesCliente.style.display = 'block';
+        return;
+    }
+    
+    divSugestoesCliente.innerHTML = '';
+    resultados.forEach(cliente => {
+        const item = document.createElement('a');
+        item.href = '#';
+        item.className = 'list-group-item list-group-item-action';
+        item.innerHTML = `
+            <div><strong>${cliente.nome}</strong></div>
+            <small class="text-muted"><i class="bi bi-telephone"></i> ${cliente.telefone}</small>
+        `;
+        
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            selecionarCliente(cliente);
+        });
+        
+        divSugestoesCliente.appendChild(item);
+    });
+    
+    divSugestoesCliente.style.display = 'block';
+});
+
+function selecionarCliente(cliente) {
+    clienteSelecionado = cliente;
+    inputCliente.value = `${cliente.nome} - 📞 ${cliente.telefone}`;
+    inputClienteHidden.value = cliente.id;
+    divSugestoesCliente.style.display = 'none';
+    
+    // Carregar veículos do cliente
+    carregarVeiculosCliente(cliente.id);
+    
+    // Habilitar botão novo veículo
+    btnNovoVeiculo.disabled = false;
+}
+
+function carregarVeiculosCliente(clienteId) {
+    const veiculosCliente = veiculos.filter(v => v.cliente_id === clienteId);
+    
+    veiculoSelect.innerHTML = '<option value="">Selecione um veículo...</option>';
+    
+    if (veiculosCliente.length === 0) {
+        veiculoSelect.innerHTML += '<option value="" disabled>Nenhum veículo cadastrado para este cliente</option>';
+    } else {
+        veiculosCliente.forEach(veiculo => {
+            const option = document.createElement('option');
+            option.value = veiculo.id;
+            option.textContent = `${veiculo.placa} - ${veiculo.modelo}`;
+            option.setAttribute('data-km', veiculo.km_atual || 0);
+            veiculoSelect.appendChild(option);
+        });
+    }
+    
+    veiculoSelect.disabled = false;
+}
+
+// Adicionar listener para quando trocar veículo
+veiculoSelect.addEventListener('change', function() {
+    const option = this.options[this.selectedIndex];
+    const kmVeiculo = option.getAttribute('data-km');
+    
+    if (kmVeiculo && kmVeiculo > 0) {
+        document.getElementById('km_atual').value = kmVeiculo;
+        document.getElementById('km_veiculo_info').innerHTML = `<i class="bi bi-info-circle"></i> KM cadastrado no veículo: ${parseInt(kmVeiculo).toLocaleString('pt-BR')} km`;
+    } else {
+        document.getElementById('km_atual').value = '';
+        document.getElementById('km_veiculo_info').textContent = '';
+    }
+});
+
+
+// ========== CADASTRO RÁPIDO CLIENTE ==========
+document.getElementById('formNovoCliente').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const dados = {
+        nome: document.getElementById('nome_cliente').value,
+        telefone: document.getElementById('telefone_cliente').value,
+        cpf_cnpj: document.getElementById('cpf_cliente').value,
+        endereco: ''
+    };
+    
+    // Enviar para o servidor
+    fetch('/clientes/novo', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams(dados)
+    })
+    .then(response => {
+        if (response.redirected) {
+            // Cliente criado com sucesso
+            // Recarregar lista de clientes
+            return fetch('/clientes/api').then(r => r.json()).then(d => d.clientes);
+        }
+        throw new Error('Erro ao criar cliente');
+    })
+    .then(data => {
+        clientes = data;
+        
+        // ✅ Busca pelo nome E telefone que acabou de digitar, não pelo índice
+        const nome = document.getElementById('nome_cliente').value.trim();
+        const tel  = document.getElementById('telefone_cliente').value.trim();
+        const novoCliente = clientes.find(c => c.nome === nome && c.telefone === tel);
+        
+        if (novoCliente) {
+            selecionarCliente(novoCliente);
+        } else {
+            alert('Cliente cadastrado! Busque pelo nome para selecionar.');
+        }
+        
+        bootstrap.Modal.getInstance(document.getElementById('modalNovoCliente')).hide();
+        document.getElementById('formNovoCliente').reset();
+        alert('Cliente cadastrado com sucesso!');
+    })
+    });
+
+    // ========== CADASTRO RÁPIDO VEÍCULO ==========
+    document.getElementById('modalNovoVeiculo').addEventListener('show.bs.modal', function() {
+        if (clienteSelecionado) {
+            document.getElementById('clienteVeiculoNome').textContent = clienteSelecionado.nome;
+        }
+    });
+
+document.getElementById('formNovoVeiculo').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    if (!clienteSelecionado) {
+        alert('Selecione um cliente primeiro');
+        return;
+    }
+
+    const btn = document.getElementById('btnSalvarVeiculo');
+    const textoOriginal = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Salvando...';
+
+    const dados = {
+        placa:      document.getElementById('placa_veiculo').value.toUpperCase(),
+        modelo:     document.getElementById('modelo_veiculo').value,
+        marca:      document.getElementById('marca_veiculo').value,
+        cor:        document.getElementById('cor_veiculo').value,
+        ano:        document.getElementById('ano_veiculo').value,
+        chassi:     document.getElementById('chassi_veiculo').value.toUpperCase(),
+        cliente_id: clienteSelecionado.id
+    };
+
+    fetch('/veiculos/modal/novo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams(dados)
+    })
+    .then(r => r.json().then(data => ({ status: r.status, data })))
+    .then(({ status, data }) => {
+        if (status !== 201) {
+            if (data.erro && data.erro.includes('duplicate key')) {
+                throw new Error('Esta placa já está cadastrada no sistema!');
+            }
+            throw new Error(data.erro || 'Erro desconhecido');
+        }
+
+        veiculos.push(data);
+        carregarVeiculosCliente(clienteSelecionado.id);
+        veiculoSelect.value = data.id;
+
+        bootstrap.Modal.getInstance(document.getElementById('modalNovoVeiculo')).hide();
+        document.getElementById('formNovoVeiculo').reset();
+        document.getElementById('badgePlacaModal').style.display = 'none';
+        alert('Veículo cadastrado com sucesso!');
+    })
+    .catch(error => {
+        alert('Erro: ' + error.message);
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = textoOriginal;
+    });
+});
+
+// Fechar sugestões ao clicar fora
+document.addEventListener('click', function(e) {
+    if (e.target !== inputCliente) divSugestoesCliente.style.display = 'none';
+});
+
+// Validação
+document.getElementById('formNovaOS').addEventListener('submit', function(e) {
+    if (!inputClienteHidden.value || !veiculoSelect.value) {
+        e.preventDefault();
+        alert('Selecione cliente e veículo');
+    }
+});
+
+// ✅ ANTI-SPAM REFINADO — intercepta submit real
+document.addEventListener('submit', function(e) {
+    const form = e.target;
+    if (!form.matches('form[method="POST"]')) return;
+    
+    const btnSubmit = form.querySelector('button[type="submit"]');
+    if (!btnSubmit || btnSubmit.disabled) {
+        e.preventDefault();
+        return false;
+    }
+    
+    // Trava botão
+    const textoOriginal = btnSubmit.innerHTML;
+    btnSubmit.dataset.original = textoOriginal;
+    btnSubmit.disabled = true;
+    btnSubmit.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Salvando...';
+    
+    // Intercepta submit e usa fetch
+    e.preventDefault();
+    
+    const formData = new FormData(form);
+    fetch(form.action, {
+        method: 'POST',
+        body: formData
+    })
+    .then(r => {
+        if (r.redirected) {
+            window.location.href = r.url;  // Redirect do backend
+        } else if (r.ok) {
+            location.reload();  // Recarrega página (sucesso)
+        } else {
+            return r.json().then(data => {
+                throw new Error(data.erro || 'Erro desconhecido');
+            });
+        }
+    })
+    .catch(err => {
+        alert('Erro: ' + err.message);
+        btnSubmit.disabled = false;
+        btnSubmit.innerHTML = textoOriginal;
+    });
+}, true);  // ← true = capture phase
+
+
+</script>
+
+<style>
+#sugestoes_cliente {
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    border: 1px solid #ddd;
+}
+
+.list-group-item:hover {
+    background-color: #f8f9fa;
+    cursor: pointer;
+}
+</style>
+{% endblock %}

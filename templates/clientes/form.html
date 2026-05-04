@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if cliente %}Editar{% else %}Novo{% endif %} Cliente{% endblock %}
+
+{% block content %}
+<h2>{% if cliente %}Editar{% else %}Novo{% endif %} Cliente</h2>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST" name="_method">
+            <div class="mb-3">
+                <label for="nome" class="form-label">Nome *</label>
+                <input type="text" class="form-control" id="nome" name="nome" 
+                       value="{{ cliente.nome if cliente else '' }}" required>
+            </div>
+
+            <div class="mb-3">
+                <label for="telefone" class="form-label">Telefone *</label>
+                <input type="text" class="form-control" id="telefone" name="telefone" 
+                       value="{{ cliente.telefone if cliente else '' }}" required>
+            </div>
+
+            <div class="mb-3">
+                <label for="cpf_cnpj" class="form-label">CPF/CNPJ</label>
+                <input type="text" class="form-control" id="cpf_cnpj" name="cpf_cnpj" 
+                       value="{{ cliente.cpf_cnpj if cliente else '' }}">
+            </div>
+
+            <div class="mb-3">
+                <label for="endereco" class="form-label">Endereço</label>
+                <textarea class="form-control" id="endereco" name="endereco" rows="3">{{ cliente.endereco if cliente else '' }}</textarea>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-check-circle"></i> Salvar
+                </button>
+                <a href="{{ url_for('clientes.listar') }}" class="btn btn-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+
+// ✅ ANTI-SPAM com LOGS pra debug
+document.addEventListener('submit', function(e) {
+    const form = e.target;
+    console.log('🔍 Submit detectado:', form.action, form.id);
+    
+    // ❌ Ignora forms de listagem E deletar inline
+    if (form.closest('.table-responsive') || 
+        form.closest('#listagem') || 
+        form.querySelector('.btn-danger') ||  // Botão deletar vermelho
+        form.action.includes('/deletar')) {
+        console.log('⏭️ Ignorando form de listagem/deletar');
+        return;
+    }
+    
+    console.log('🚀 Processando form AJAX:', form.action);
+    
+    const btnSubmit = form.querySelector('button[type="submit"]');
+    if (!btnSubmit || btnSubmit.disabled) {
+        console.log('❌ Botão já desabilitado');
+        e.preventDefault();
+        return false;
+    }
+    
+    // Trava
+    const textoOriginal = btnSubmit.innerHTML;
+    btnSubmit.dataset.original = textoOriginal;
+    btnSubmit.disabled = true;
+    btnSubmit.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Salvando...';
+    
+    e.preventDefault();
+    
+    const formData = new FormData(form);
+    console.log('📤 Enviando para:', form.action);
+    
+    fetch(form.action, {
+        method: 'POST',
+        body: formData
+    })
+    .then(r => {
+        console.log('📥 Resposta:', r.status, r.statusText);
+        if (r.redirected) {
+            console.log('🔄 Redirect para:', r.url);
+            window.location.href = r.url;
+        } else if (r.ok) {
+            console.log('✅ Sucesso - reload');
+            location.reload();
+        } else {
+            console.log('❌ Erro HTTP:', r.status);
+            return r.json().then(data => {
+                throw new Error(data.erro || 'Erro desconhecido');
+            });
+        }
+    })
+    .catch(err => {
+        console.error('💥 Erro:', err);
+        alert('Erro: ' + err.message);
+        btnSubmit.disabled = false;
+        btnSubmit.innerHTML = textoOriginal;
+    });
+}, true);
+</script>
+
+
+</script>
+{% endblock %}
