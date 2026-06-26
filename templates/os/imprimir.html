@@ -249,7 +249,6 @@
 
     <div class="container">
 
-        <!-- HEADER -->
         <div class="header">
             <div class="header-logo">
                 {% if empresa_config and empresa_config.logo_b64 %}
@@ -274,7 +273,6 @@
             </div>
         </div>
 
-        <!-- DADOS DA OS -->
         <div class="os-box">
             <div>
                 <div class="os-num">OS #{{ ordem.id[:8] }}</div>
@@ -302,7 +300,6 @@
             </div>
         </div>
 
-        <!-- CLIENTE E VEÍCULO -->
         <div class="info-grid" style="grid-template-columns: 1fr 1fr;">
             <div class="info-box">
                 <h3>👤 Dados do Cliente</h3>
@@ -327,7 +324,6 @@
             </div>
         </div>
 
-        <!-- DESCRIÇÃO -->
         {% if ordem.descricao_problema %}
         <div class="description-box">
             <h4>📋 Descrição do Problema/Serviço</h4>
@@ -335,8 +331,9 @@
         </div>
         {% endif %}
 
-        <!-- TABELA ÚNICA com agrupamento visual -->
         <div class="section-title">ITENS E SERVIÇOS</div>
+
+        {% set calc = namespace(total_terceirizado=0.0) %}
 
         <table>
             <thead>
@@ -348,7 +345,6 @@
                 </tr>
             </thead>
             <tbody>
-                <!-- GRUPO: PEÇAS -->
                 <tr class="group-header">
                     <td colspan="4">🔩 PEÇAS</td>
                 </tr>
@@ -372,14 +368,14 @@
                     <td>R$ {{ '{:,.2f}'.format(ordem.total_pecas).replace(',','X').replace('.',',').replace('X','.') }}</td>
                 </tr>
 
-                <!-- GRUPO: TERCERIZADO ➕ NOVO -->
                 <tr class="group-header">
-                    <td colspan="4">🚚 TERCERIZADOS</td>
+                    <td colspan="4">🚚 TERCEIRIZADOS</td>
                 </tr>
                 {% set achou_terc = [] %}
                 {% for item in itens %}
                     {% if item.tipo == 'TERCEIRIZADO' %}
                         {% if achou_terc.append(1) %}{% endif %}
+                        {% set calc.total_terceirizado = calc.total_terceirizado + (item.quantidade * item.venda_unitario) %}
                         <tr>
                             <td>{{ item.nome_item }}</td>
                             <td class="text-center">{{ item.quantidade }}</td>
@@ -389,10 +385,13 @@
                     {% endif %}
                 {% endfor %}
                 {% if not achou_terc %}
-                <tr><td colspan="4" style="color:#9ca3af;padding:6px 8px;">Nenhum terceirizado</td></tr>
+                <tr><td colspan="4" style="color:#9ca3af;padding:6px 8px;">Nenhum serviço terceirizado adicionado</td></tr>
                 {% endif %}
+                <tr class="group-subtotal">
+                    <td colspan="3">Subtotal Terceirizados</td>
+                    <td>R$ {{ '{:,.2f}'.format(calc.total_terceirizado).replace(',','X').replace('.',',').replace('X','.') }}</td>
+                </tr>
 
-                <!-- GRUPO: SERVIÇOS -->
                 <tr class="group-header">
                     <td colspan="4">🔨 MÃO DE OBRA / SERVIÇOS</td>
                 </tr>
@@ -418,16 +417,22 @@
             </tbody>
         </table>
 
-        <!-- TOTAIS -->
         <div class="totals">
             <div class="total-row">
                 <span>Peças:</span>
                 <strong>R$ {{ '{:,.2f}'.format(ordem.total_pecas).replace(',','X').replace('.',',').replace('X','.') }}</strong>
             </div>
+            
+            <div class="total-row">
+                <span>Terceirizados:</span>
+                <strong>R$ {{ '{:,.2f}'.format(calc.total_terceirizado).replace(',','X').replace('.',',').replace('X','.') }}</strong>
+            </div>
+
             <div class="total-row">
                 <span>Mão de Obra:</span>
                 <strong>R$ {{ '{:,.2f}'.format(ordem.total_mao_obra).replace(',','X').replace('.',',').replace('X','.') }}</strong>
             </div>
+            
             <div class="total-row grand-total">
                 <span>TOTAL GERAL:</span>
                 <strong>R$ {{ '{:,.2f}'.format(ordem.total_geral).replace(',','X').replace('.',',').replace('X','.') }}</strong>
@@ -439,7 +444,6 @@
             {% endif %}
         </div>
 
-        <!-- ASSINATURAS -->
         <div class="signature-area">
             <div class="signature-box">
                 <div class="signature-line">
